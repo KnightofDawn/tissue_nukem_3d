@@ -1,0 +1,10 @@
+Metadata-Version: 1.0
+Name: VPlants.sam4Dmaps
+Version: 1.0.0
+Summary: sam4Dmaps package for VPlants.
+Home-page: http://openalea.gforge.inria.fr
+Author: XXX
+Author-email: XXX@XXX
+License: Cecill-C
+Description: The VPlants.sam4Dmaps package is a typical package example to help developper to create their own package, compatible with OpenAlea standards.
+Platform: UNKNOWN
