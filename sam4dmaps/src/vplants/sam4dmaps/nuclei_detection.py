@@ -1,3 +1,23 @@
+# -*- coding: utf-8 -*-
+# -*- python -*-
+#
+#       Mersitem 4D Maps
+#
+#       Copyright 2015 INRIA - CIRAD - INRA
+#
+#       File author(s): Guillaume Cerutti <guillaume.cerutti@inria.fr>
+#
+#       File contributor(s): Sophie Ribes <sophie.ribes@inria.fr>,
+#                            Guillaume Cerutti <guillaume.cerutti@inria.fr>
+#
+#       Distributed under the Cecill-C License.
+#       See accompanying file LICENSE.txt or copy at
+#           http://www.cecill.info/licences/Licence_CeCILL-C_V1-en.html
+#
+#       TissueLab Website : http://virtualplants.github.io/
+#
+###############################################################################
+
 import numpy as np
 
 def array_unique(array,return_index=False):
@@ -6,6 +26,7 @@ def array_unique(array,return_index=False):
     return array[unique_rows],unique_rows
   else:
     return array[unique_rows]
+
 
 def scale_space_transform(image, sigmas):
     from scipy.ndimage.filters import gaussian_filter, gaussian_laplace, laplace
@@ -28,6 +49,12 @@ def scale_space_transform(image, sigmas):
 
 def detect_peaks_3D_scale_space(scale_space_images,sigmas,threshold=None,resolution=[1,1,1]):
     """
+    Identify local maxima in a 4D scale-space image
+    :scale_space_images: np.ndarray containing scale-space transform of a 3d image
+    :sigmas: list of scales used to generate the scale-space
+    :threshold: minimal intensity to be reached by a candidate maximum
+    :resolution: spatial resolution of the 3D images
+    :returns: np.ndarray containing 4D coordinates of local maxima
     """
     from time import time
 
@@ -107,6 +134,8 @@ def detect_nuclei(nuclei_img, threshold = 3000., size_range_start = 0.4, size_ra
     return peak_positions
 
 def compute_fluorescence_ratios(nuclei_img, signal_img, nuclei_points, nuclei_sigma=3.0):
+    """
+    """
     from scipy.ndimage.filters import gaussian_filter
 
     resolution = np.array(nuclei_img.resolution)
@@ -124,10 +153,14 @@ def compute_fluorescence_ratios(nuclei_img, signal_img, nuclei_points, nuclei_si
     return nuclei_ratio
 
 def write_nuclei_points(nuclei_positions, nuclei_filename, data_name="data"):
+    """
+    """
 
     if "TriangularMesh" in str(nuclei_positions.__class__):
         nuclei_data = nuclei_positions.point_data
         nuclei_positions = nuclei_positions.points
+    else:
+        nuclei_data = {}
 
     nuclei_file =  open(nuclei_filename,'w+',1)
     nuclei_file.write("Cell id;x;y;z")
@@ -144,6 +177,9 @@ def write_nuclei_points(nuclei_positions, nuclei_filename, data_name="data"):
     nuclei_file.close()
 
 def read_nuclei_points(nuclei_filename):
+    """
+    """
+
     try:
         import csv
         nuclei_data = csv.reader(open(nuclei_filename,"rU"),delimiter=';')
