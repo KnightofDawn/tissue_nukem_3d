@@ -18,7 +18,7 @@ world.clear()
 
 import vplants.meshing_data
 
-filename = "r2DII_1.2_141202_sam03_t28"
+filename = "DR5N_6.1_151124_sam02_z1.04_t00"
 dirname = shared_data(vplants.meshing_data)
 
 reference_file = dirname+"/nuclei_images/"+filename+"/"+filename+"_tdT.inr.gz"
@@ -38,7 +38,7 @@ except:
     try:
         positions = array_dict(read_nuclei_points(detected_filename))
     except:
-        positions = detect_nuclei(reference_img,threshold=4500,size_range_start=0.5,size_range_end=0.8)
+        positions = detect_nuclei(reference_img,threshold=3500,size_range_start=0.5,size_range_end=0.8)
         write_nuclei_points(positions,detected_filename)
     
     segmented_img = nuclei_active_region_segmentation(reference_img, positions, display=False)
@@ -49,10 +49,11 @@ except:
     write_nuclei_points(segmented_positions,segmented_filename)
 
 detected_cells = TriangularMesh()
-detected_cells.points = positions
-detected_cells.point_data = dict([(c,0.5) for c in positions.keys()])
+detected_cells.points = segmented_positions
+detected_cells.point_data = dict([(c,0.5) for c in segmented_positions.keys()])
 world.add(detected_cells,'segmented_cells',colormap='leaf',intensity_range=(0,1),position=position)
 raw_input()
+
 
 nuclei_filename = dirname+"/nuclei_images/"+filename+"/"+filename+"_edited_cells.csv"
 write_nuclei_points(world['segmented_cells'].data,nuclei_filename,data_name='certainty')

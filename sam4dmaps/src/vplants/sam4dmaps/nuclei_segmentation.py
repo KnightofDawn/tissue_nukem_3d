@@ -246,10 +246,10 @@ def nuclei_active_region_segmentation(reference_img, positions, omega_energies=d
 def nuclei_positions_from_segmented_image(segmented_img, background_label=1):
     """
     """
-    from vplants.tissue_analysis.spatial_image_analysis import SpatialImageAnalysis
-    image_positions =SpatialImageAnalysis(segmented_img).center_of_mass()
+    resolution = np.array(segmented_img.resolution)
     segmented_cells = np.array([c for c in np.unique(segmented_img) if c!= background_label])
-    segmented_positions = array_dict([image_positions[c] for c in segmented_cells],segmented_cells)
+    segmented_positions = array_dict(np.array(nd.center_of_mass(np.ones_like(segmented_img),segmented_img,index=segmented_cells))*resolution,segmented_cells)
+
     return segmented_positions
 
 
