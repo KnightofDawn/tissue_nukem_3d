@@ -176,7 +176,7 @@ def write_nuclei_points(nuclei_positions, nuclei_filename, data_name="data"):
     nuclei_file.flush()
     nuclei_file.close()
 
-def read_nuclei_points(nuclei_filename):
+def read_nuclei_points(nuclei_filename, return_data=False):
     """
     """
 
@@ -192,7 +192,11 @@ def read_nuclei_points(nuclei_filename):
 
         points = list(np.array(nuclei_cells[:,0],int)+2)
         points_coordinates = list(nuclei_cells[:,1:4])
-        return dict(zip(points,points_coordinates))
+        if return_data and nuclei_cells.shape[1]>4:
+            points_data = list(nuclei_cells[:,4])
+            return dict(zip(points,points_coordinates)), dict(zip(points,points_data))
+        else:
+            return dict(zip(points,points_coordinates))
     except IOError:
         return None
     
