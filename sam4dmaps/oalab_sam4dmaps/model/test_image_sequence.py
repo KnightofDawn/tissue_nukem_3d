@@ -31,7 +31,7 @@ from copy import deepcopy
 #sequence_name = "r2DII_2.2_141204_sam08" 
 #sequence_name = "r2DII_1.2_141202_sam03"
 #sequence_name = "r2DII_2.2_141204_sam09" 
-sequence_name = "r2DII_1.2_141202_sam06" 
+sequence_name = "r2DII_1.2_141202_sam03" 
 #sequence_name = "r2DII_3.2_141127_sam04" 
 #sequence_name = "r2DII_1.2_141202_sam02" 
 #sequence_name = "r2DII_1.2_141202_sam04"
@@ -39,13 +39,7 @@ sequence_name = "r2DII_1.2_141202_sam06"
 
 filenames = [sequence_name+"_t00",
              sequence_name+"_t04",
-             sequence_name+"_t08",
-             sequence_name+"_t12",
-             sequence_name+"_t20",
-             sequence_name+"_t24",
-             sequence_name+"_t28",
-             sequence_name+"_t32",
-             sequence_name+"_t36"]
+             sequence_name+"_t08"]
 dirname = shared_data(vplants.meshing_data)
 
 tag_name = "tdT"
@@ -76,9 +70,13 @@ for i,filename in enumerate(filenames):
    
         #position=np.array(tag_img.shape)/2. + np.array([((int(filetime[2:])+4)%24)/4,-2*((int(filetime[2:])+4)/24)-1,0])*np.array(tag_img.shape)
         position=np.array(tag_img.shape)/2. + np.array([((int(filetime[2:])+4)%24)/4,-((int(filetime[2:])+4)/24),0])*np.array(tag_img.shape)
-        venus_file = dirname+"/nuclei_images/"+filename+"/"+filename+"_"+signal_name+".inr.gz"
+        #venus_file = dirname+"/nuclei_images/"+filename+"/"+filename+"_"+signal_name+".inr.gz"
+        venus_file = dirname+"/nuclei_images/"+filename+"/"+filename+"_seg.inr.gz"
         venus_img = imread(venus_file)
         
+        world.add(venus_img,'DII_venus'+filetime,position=position,resolution=np.array(venus_img.resolution)*np.array([-1.,-1.,-1.]),colormap='glasbey')
+      
+      
         if venus_img.dtype==np.uint16:
             world.add(venus_img,'DII_venus'+filetime,position=position,resolution=np.array(venus_img.resolution)*np.array([-1.,-1.,-1.]),colormap='green',intensity_range=(4000,30000))
         else:

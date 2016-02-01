@@ -19,6 +19,8 @@ world.clear()
 import vplants.meshing_data
 
 filename = "DR5N_6.1_151124_sam02_z1.04_t00"
+#filename = "r2DII_1.2_141202_sam03_t08"
+#filename = "DR5N_6.1_151124_sam01_z0.50_t00"
 dirname = shared_data(vplants.meshing_data)
 
 reference_file = dirname+"/nuclei_images/"+filename+"/"+filename+"_tdT.inr.gz"
@@ -27,7 +29,6 @@ reference_img = imread(reference_file)
 size = np.array(reference_img.shape)
 resolution = np.array(reference_img.resolution)
 position = np.array([0,0,0])
-
 world.add(reference_img,'reference_image',position=position/resolution,resolution=resolution,colormap='invert_grey')
 
 segmented_filename = dirname+"/nuclei_images/"+filename+"/segmented_cells.csv"
@@ -54,8 +55,14 @@ detected_cells.point_data = dict([(c,0.5) for c in segmented_positions.keys()])
 world.add(detected_cells,'segmented_cells',colormap='leaf',intensity_range=(0,1),position=position)
 raw_input()
 
-
 nuclei_filename = dirname+"/nuclei_images/"+filename+"/"+filename+"_edited_cells.csv"
+segmented_positions, point_status = read_nuclei_points(nuclei_filename,return_data=True)
+detected_cells = TriangularMesh()
+detected_cells.points = segmented_positions
+detected_cells.point_data = point_status
+world.add(detected_cells,'segmented_cells',colormap='leaf',intensity_range=(0,1),position=position)
+raw_input()
+
 write_nuclei_points(world['segmented_cells'].data,nuclei_filename,data_name='certainty')
 
 
