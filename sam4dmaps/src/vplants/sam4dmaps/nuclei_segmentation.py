@@ -227,10 +227,12 @@ def nuclei_active_region_segmentation(reference_img, positions, omega_energies=d
 
     for iteration in xrange(iterations):
         start_time = time()
-        print "  --> Active region energy gradient descent : iteration",iteration 
+        print "  --> Active region energy gradient descent : iteration",iteration
+        previous_regions_img = np.copy(regions_img)
         regions_img = active_regions_energy_gradient_descent(regions_img,reference_img,omega_energies=omega_energies,intensity_min=intensity_min,gradient_img=gradient)
+        change = ((regions_img-previous_regions_img) != 0.).sum() / float((regions_img > 1.).sum())
         end_time = time()
-        print "  --> Active region energy gradient descent : iteration",iteration,"[",end_time-start_time," s]"
+        print "  --> Active region energy gradient descent : iteration",iteration,"  (Evolution : ",int(100*change)," %)  ","[",end_time-start_time," s]"
 
         if display:
             world.add(regions_img,'active_regions',colormap='invert_grey',resolution=resolution,intensity_range=(1,2))
@@ -239,6 +241,9 @@ def nuclei_active_region_segmentation(reference_img, positions, omega_energies=d
     if display:
         world.add(segmented_img,'active_regions',colormap='glasbey',resolution=resolution,alphamap='constant')
         raw_input()
+
+    segmentation_end_time = time()
+    print "<-- Active region segmentation (",len(np.unique(segmented_img))-1," regions )    [",segmentation_end_time-segmentation_start_time," s]"
 
     return segmented_img
 

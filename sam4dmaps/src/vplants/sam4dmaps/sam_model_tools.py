@@ -19,11 +19,14 @@ def spherical_parametric_meristem_model(parameters):
     primordia_centers += np.transpose([np.zeros_like(primordia_heights),np.zeros_like(primordia_heights),primordia_heights])
 
     dome_center = dome_apex-dome_scales*np.array([0,0,dome_radius])
+    #dome_center = dome_apex+dome_scales*np.array([0,0,dome_radius])
 
     dome_psi = np.pi*parameters['dome_psi']/180.
     rotation_psi = np.array([[1,0,0],[0,np.cos(dome_psi),-np.sin(dome_psi)],[0,np.sin(dome_psi),np.cos(dome_psi)]])
+    #rotation_psi = np.array([[1,0,0],[0,np.cos(dome_psi),np.sin(dome_psi)],[0,-np.sin(dome_psi),np.cos(dome_psi)]])
     dome_phi = np.pi*parameters['dome_phi']/180.
     rotation_phi = np.array([[np.cos(dome_phi),0,-np.sin(dome_phi)],[0,1,0],[np.sin(dome_phi),0,np.cos(dome_phi)]])
+    #rotation_phi = np.array([[np.cos(dome_phi),0,np.sin(dome_phi)],[0,1,0],[-np.sin(dome_phi),0,np.cos(dome_phi)]])
 
     dome_axes = np.array([[1,0,0],[0,1,0],[0,0,1]])
 
@@ -215,6 +218,40 @@ def meristem_model_density_function(model):
             density +=  1./2. * (1. - np.tanh(k*(primordium_distance - (primordia_radiuses[p]+max_radius)/2.)))
         return density
     return density_func
+
+def meristem_model_organ_weighted_density_function(model):
+    import numpy as np
+    dome_center = model['dome_center']
+    dome_radius = model['dome_radius']
+    primordia_centers = model['primordia_centers']
+    primordia_radiuses = model['primordia_radiuses']
+    dome_axes = model['dome_axes']
+    dome_scales = model['dome_scales']
+    k=1
+    R_dome=1.0
+    R_primordium=1.0
+
+    def density_func(x,y,z):
+        mahalanobis_matrix = np.einsum('...i,...j->...ij',dome_axes[0],dome_axes[0])/np.power(dome_scales[0],2.) + np.einsum('...i,...j->...ij',dome_axes[1],dome_axes[1])/np.power(dome_scales[1],2.) + np.einsum('...i,...j->...ij',dome_axes[2],dome_axes[2])/np.power(dome_scales[2],2.)
+        
+        dome_vectors = np.zeros((x.shape[0],y.shape[1],z.shape[2],3))
+        dome_vectors[:,:,:,0] = x-dome_center[0]
+        dome_vectors[:,:,:,1] = y-dome_center[1]
+        dome_vectors[:,:,:,2] = z-dome_center[2]
+
+        # dome_distance = np.power(np.power(x-dome_center[0],2) + np.power(y-dome_center[1],2) + np.power(z-dome_center[2],2),0.5)
+        # dome_distance = np.power(np.power(x-dome_center[0],2)/np.power(dome_scales[0],2) + np.power(y-dome_center[1],2)/np.power(dome_scales[1],2) + np.power(z-dome_center[2],2)/np.power(dome_scales[2],2),0.5)
+        dome_distance = np.power(np.einsum('...ij,...ij->...i',dome_vectors,np.einsum('...ij,...j->...i',mahalanobis_matrix,dome_vectors)),0.5)
+
+        max_radius = R_dome*dome_radius
+        density = 1./2. * (1. - np.tanh(k*(dome_distance - (dome_radius+max_radius)/2.)))
+        for p in xrange(len(primordia_radiuses)):
+            primordium_distance = np.power(np.power(x-primordia_centers[p][0],2) + np.power(y-primordia_centers[p][1],2) + np.power(z-primordia_centers[p][2],2),0.5)
+            max_radius = R_primordium*primordia_radiuses[p]
+            density +=  1./np.power((p+4),0.5) * (1. - np.tanh(k*(primordium_distance - (primordia_radiuses[p]+max_radius)/2.)))
+        return density
+    return density_func
+
 
 def draw_meristem_model_vtk(meristem_model):
     import vtk

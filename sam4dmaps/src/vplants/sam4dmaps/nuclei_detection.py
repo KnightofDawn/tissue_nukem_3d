@@ -106,7 +106,8 @@ def detect_nuclei(nuclei_img, threshold = 3000., size_range_start = 0.4, size_ra
     size = np.array(nuclei_img.shape)
 
     step = 0.1
-    sigmas = np.arange(size_range_start,size_range_end,step)
+    # sigmas = np.arange(float(size_range_start),float(size_range_end),step)
+    sigmas = np.linspace(size_range_start,size_range_end-step,np.round((size_range_end-size_range_start)/step))
     print sigmas
     scale_space = scale_space_transform(nuclei_img,sigmas)
 
@@ -133,7 +134,7 @@ def detect_nuclei(nuclei_img, threshold = 3000., size_range_start = 0.4, size_ra
 
     return peak_positions
 
-def compute_fluorescence_ratios(nuclei_img, signal_img, nuclei_points, nuclei_sigma=3.0):
+def compute_fluorescence_ratios(nuclei_img, signal_img, nuclei_points, nuclei_sigma=3.0, negative=False, truncate=False):
     """
     """
     from scipy.ndimage.filters import gaussian_filter
@@ -144,11 +145,21 @@ def compute_fluorescence_ratios(nuclei_img, signal_img, nuclei_points, nuclei_si
     filtered_signal_img = gaussian_filter(signal_img,sigma=resolution*nuclei_sigma,order=0)
 
     coords = np.array(np.array(nuclei_points.values())/resolution,int)
+    print coords
 
     points_signal = filtered_signal_img[tuple([coords[:,0],coords[:,1],coords[:,2]])]
     points_nuclei = filtered_nuclei_img[tuple([coords[:,0],coords[:,1],coords[:,2]])]
 
-    nuclei_ratio = dict(zip(nuclei_points.keys(),list(np.minimum((points_signal+0.001)/(points_nuclei+0.001),1.0))))
+    # nuclei_ratio = dict(zip(nuclei_points.keys(),list(np.minimum((points_signal+0.001)/(points_nuclei+0.001),1.0))))
+    # nuclei_ratio = dict(zip(nuclei_points.keys(),list((points_signal+0.001)/(points_nuclei+0.001))))
+
+    if truncate:
+        nuclei_ratio = np.minimum((points_signal+0.001)/(points_nuclei+0.001),1.0)
+    else:
+        nuclei_ratio = (points_signal+0.001)/(points_nuclei+0.001)
+    if negative:
+        nuclei_ratio = 1. - nuclei_ratio
+    nuclei_ratio = dict(zip(nuclei_points.keys(),list(nuclei_ratio)))
 
     return nuclei_ratio
 
