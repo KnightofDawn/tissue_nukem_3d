@@ -1,7 +1,7 @@
 import numpy as np
 from copy import deepcopy
 
-from vplants.meshing.implicit_surfaces import implicit_surface, implicit_surface_topomesh
+from openalea.mesh.utils.implicit_surfaces import implicit_surface, implicit_surface_topomesh
 
 
 class ParametricShapeModel:
