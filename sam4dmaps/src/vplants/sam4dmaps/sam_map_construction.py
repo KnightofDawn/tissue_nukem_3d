@@ -109,6 +109,150 @@ def meristem_2d_polar_map(aligned_positions, aligned_meristem_model, epidermis_c
     # plt.show(block=False)
     # raw_input()
 
+def meristem_2d_cylindrical_map(cylindrical_coordinates, meristem_model, epidermis_cells, signal_ratios, normalize=True, r_max=160, cell_radius=2.39, density_k=0.25):
+
+    dome_radius = 80.
+
+    epidermis_cell_distances = cylindrical_coordinates.values(epidermis_cells)[:,1]
+    epidermis_cell_surface_distances = (2.*dome_radius)*np.arcsin(np.minimum(epidermis_cell_distances/(2.*dome_radius),1.0))
+    epidermis_cell_angles = np.pi*cylindrical_coordinates.values(epidermis_cells)[:,0]/180.
+
+    epidermis_cell_x = epidermis_cell_surface_distances*np.cos(epidermis_cell_angles)
+    epidermis_cell_y = epidermis_cell_surface_distances*np.sin(epidermis_cell_angles)
+    epidermis_cell_z = epidermis_cell_distances*0
+    projected_epidermis_points = dict(zip(epidermis_cells,np.transpose([epidermis_cell_x,epidermis_cell_y,epidermis_cell_z])))
+
+    #r = np.linspace(0,160,81)
+    r = np.linspace(0,r_max,r_max/2+1)
+    #t = np.linspace(0,2*np.pi,360)
+    t = np.linspace(0,2*np.pi,180)
+    R,T = np.meshgrid(r,t)
+
+    e_x = R*np.cos(T)
+    e_y = R*np.sin(T)
+    e_z = R*0
+
+    epidermis_nuclei_potential = np.array([nuclei_density_function(dict([(p,projected_epidermis_points[p])]),cell_radius=cell_radius,k=density_k)(e_x,e_y,e_z) for p in epidermis_cells])
+    epidermis_nuclei_potential = np.transpose(epidermis_nuclei_potential,(1,2,0))
+
+    epidermis_nuclei_density = np.sum(epidermis_nuclei_potential,axis=2)
+    epidermis_nuclei_membership = epidermis_nuclei_potential/epidermis_nuclei_density[...,np.newaxis]
+
+    epidermis_nuclei_ratio = np.sum(epidermis_nuclei_membership*signal_ratios.values(epidermis_cells)[np.newaxis,np.newaxis,:],axis=2)
+    
+    if normalize:
+        ratio_min = (np.mean(signal_ratios.values()) - np.sqrt(2.)*np.std(signal_ratios.values()))
+        ratio_max = (np.mean(signal_ratios.values()) + np.sqrt(2.)*np.std(signal_ratios.values()))
+    else:
+        ratio_min = 0.
+        ratio_max = 1.
+
+    epidermis_nuclei_ratio = (epidermis_nuclei_ratio-ratio_min)/(ratio_max-ratio_min)
+
+    e_x = (2.*dome_radius)*np.sin(R/(2.*dome_radius))*np.cos(T)
+    e_y = (2.*dome_radius)*np.sin(R/(2.*dome_radius))*np.sin(T)
+    e_z = R*0.
+    
+    dome_density = nuclei_density_function(dict([(p,np.array([0,0,0]))]),meristem_model.parameters['dome_radius'],k=1)(e_x,e_y,e_z)
+    epidermis_model_density = dome_density 
+
+    primordia_centers = meristem_model.shape_model['primordia_centers']
+    primordia_centers[:,2] = 0
+    primordia_radiuses = meristem_model.shape_model['primordia_radiuses']
+    n_organs = meristem_model.parameters['n_primordia']
+
+    for p in xrange(n_organs):
+        organ_density = nuclei_density_function(dict([(p,np.array(primordia_centers[p]))]),primordia_radiuses[p],k=1)(e_x,e_y,e_z)
+        epidermis_model_density += organ_density
+
+    epidermis_positions = array_dict(cylindrical_coordinates.values(epidermis_cells)[:,:2],epidermis_cells)
+
+    return epidermis_nuclei_ratio, epidermis_model_density, epidermis_positions, T, R 
+
+def meristem_2dt_cylindrical_map(time_cylindrical_coordinates, developmental_time, meristem_model, time_epidermis_cells, time_signal_ratios, normalize=True, r_max=160, cell_radius=2.39, density_k=0.25, time_radius = 0.0, time_density_k = 5.0):
+
+    dome_radius = 80.
+
+    #r = np.linspace(0,160,81)
+    r = np.linspace(0,r_max,r_max/2+1)
+    #t = np.linspace(0,2*np.pi,360)
+    t = np.linspace(0,2*np.pi,180)
+    R,T = np.meshgrid(r,t)
+
+    e_x = R*np.cos(T)
+    e_y = R*np.sin(T)
+    e_z = R*0
+
+    epidermis_nuclei_time_potentials = {}
+    epidermis_nuclei_time_signals = {}
+
+    ratio_min = 0
+    ratio_max = 0
+    time_density = 0
+
+    for time in time_cylindrical_coordinates.keys():
+        cylindrical_coordinates = time_cylindrical_coordinates[time]
+
+        epidermis_cells = time_epidermis_cells[time]
+        signal_ratios = time_signal_ratios[time]
+
+        epidermis_cell_distances = cylindrical_coordinates.values(epidermis_cells)[:,1]
+        epidermis_cell_surface_distances = (2.*dome_radius)*np.arcsin(np.minimum(epidermis_cell_distances/(2.*dome_radius),1.0))
+        epidermis_cell_angles = np.pi*cylindrical_coordinates.values(epidermis_cells)[:,0]/180.
+        
+        epidermis_cell_x = epidermis_cell_surface_distances*np.cos(epidermis_cell_angles)
+        epidermis_cell_y = epidermis_cell_surface_distances*np.sin(epidermis_cell_angles)
+        epidermis_cell_z = epidermis_cell_distances*0
+        projected_epidermis_points = dict(zip(epidermis_cells,np.transpose([epidermis_cell_x,epidermis_cell_y,epidermis_cell_z])))
+        
+        epidermis_nuclei_potential = np.array([nuclei_density_function(dict([(p,projected_epidermis_points[p])]),cell_radius=cell_radius,k=density_k)(e_x,e_y,e_z) for p in epidermis_cells])
+        epidermis_nuclei_potential = np.transpose(epidermis_nuclei_potential,(1,2,0))
+    
+        time_distance = np.abs(developmental_time/9. - time)
+        time_potential = 1./2. * (1. - np.tanh(time_density_k*(time_distance - time_radius)))
+
+        ratio_min += time_potential*(np.mean(signal_ratios.values()) - np.sqrt(2.)*np.std(signal_ratios.values()))
+        ratio_max += time_potential*(np.mean(signal_ratios.values()) + np.sqrt(2.)*np.std(signal_ratios.values()))
+        time_density += time_potential
+
+        epidermis_nuclei_time_potentials[time] = time_potential*epidermis_nuclei_potential
+        epidermis_nuclei_time_signals[time] = signal_ratios.values(epidermis_cells)
+
+    epidermis_nuclei_time_potential = np.concatenate(epidermis_nuclei_time_potentials.values(),axis=2)
+    epidermis_nuclei_time_signal = np.concatenate(epidermis_nuclei_time_signals.values(),axis=0)
+    
+    epidermis_nuclei_time_density = np.sum(epidermis_nuclei_time_potential,axis=2)
+    epidermis_nuclei_time_membership = epidermis_nuclei_time_potential/epidermis_nuclei_time_density[...,np.newaxis]
+    
+    if normalize:
+        ratio_min /= time_density
+        ratio_max /= time_density
+    else:
+        ratio_min = 0.
+        ratio_max = 1.
+
+    epidermis_nuclei_ratio = np.sum(epidermis_nuclei_time_membership*epidermis_nuclei_time_signal[np.newaxis,np.newaxis,:],axis=2)
+    epidermis_nuclei_ratio = (epidermis_nuclei_ratio-ratio_min)/(ratio_max-ratio_min)
+
+    dome_density = nuclei_density_function(dict([(p,np.array([0,0,0]))]),dome_radius,k=1)(e_x,e_y,e_z)
+    epidermis_model_density = dome_density  
+    
+    primordia_centers = meristem_model.shape_model['primordia_centers']
+    primordia_centers[:,2] = 0
+    primordia_radiuses = meristem_model.shape_model['primordia_radiuses']
+    n_organs = meristem_model.parameters['n_primordia']
+     
+    for p in xrange(n_organs):
+        organ_density = nuclei_density_function(dict([(p,np.array(primordia_centers[p]))]),primordia_radiuses[p],k=1)(e_x,e_y,e_z)
+        epidermis_model_density += organ_density
+
+    epidermis_positions = array_dict()
+
+    return epidermis_nuclei_ratio, epidermis_model_density, epidermis_positions, T, R 
+        
+
+
+
 def extract_signal_map_maxima(signal_map, T, R, model_density_map=None):
     from vplants.morpheme.vt_exec.linearfilter import linearfilter
     from vplants.morpheme.vt_exec.regionalext import regionalext
@@ -174,7 +318,7 @@ def draw_signal_map(figure, signal_map, T, R, model_density_map=None, map_positi
         if n_levels > 0:
             ratio_step = (ratio_max - ratio_min)/float(n_levels)
             ratio_levels = np.arange(ratio_min-ratio_step,ratio_max+2*ratio_step,ratio_step)
-            ratio_levels[0] = -0.5
+            ratio_levels[0] = -1.0
             ratio_levels[-1] = 1.5
             #ratio_levels[0] = 0.
             #ratio_levels[-1] = np.max(reference_values.values())

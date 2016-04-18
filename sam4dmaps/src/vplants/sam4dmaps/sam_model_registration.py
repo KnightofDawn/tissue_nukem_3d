@@ -125,6 +125,70 @@ def meristem_model_alignement(meristem_model, positions, reference_dome_apex, nu
     
     return aligned_meristem_model, aligned_positions, aligned_nuclei_image, aligned_signal_image
 
+def meristem_model_cylindrical_coordinates(meristem_model, positions, organ_gap=0., orientation=None):
+    
+    if orientation is None:
+        orientation = meristem_model.parameters['orientation']
+    golden_angle = np.sign(orientation)*(2.*np.pi)/((np.sqrt(5)+1)/2.+1)
+    golden_angle = 180.*golden_angle/np.pi
+
+    n_organs = meristem_model.parameters['n_primordia']
+
+    dome_apex = np.array([meristem_model.parameters['dome_apex_'+axis] for axis in ['x','y','z']])
+    dome_center = meristem_model.shape_model['dome_center']
+
+    #organ_center = meristem_model.shape_model['primordia_centers'][-1]
+    organ_center = meristem_model.shape_model['primordia_centers'][0]
+
+    angular_offset = meristem_model.parameters['primordium_1_angle'] - golden_angle
+
+    point_vectors = (positions.values()-dome_apex[np.newaxis,:])
+    model_vertical_axis = (dome_apex-dome_center)/np.linalg.norm(dome_apex-dome_center)
+
+    model_radial_axis = (organ_center-dome_apex)
+    model_radial_axis -= np.dot(model_radial_axis,model_vertical_axis)*model_vertical_axis
+    model_radial_axis = model_radial_axis/np.linalg.norm(model_radial_axis)
+
+    model_coradial_axis = orientation*np.cross(model_vertical_axis,model_radial_axis)
+
+    model_points_vertical = np.dot(point_vectors,model_vertical_axis)
+
+    point_normal_vectors = point_vectors - model_points_vertical[:,np.newaxis]*model_vertical_axis 
+
+    model_points_radial = np.linalg.norm(point_normal_vectors,axis=1)
+
+    model_points_angular = 180.*np.arccos(np.dot(point_normal_vectors,model_radial_axis)/model_points_radial)/np.pi
+    model_points_angular *= np.sign(np.dot(point_normal_vectors,model_coradial_axis))
+    model_points_angular += angular_offset
+    #model_points_angular += (organ_gap+n_organs-1)*golden_angle 
+    model_points_angular += golden_angle 
+    model_points_angular += organ_gap*golden_angle 
+    model_points_angular += (meristem_model.parameters['primordium_offset'])*golden_angle
+
+    print organ_gap, meristem_model.parameters['primordium_offset'], organ_gap*golden_angle - angular_offset
+
+    model_coordinates = array_dict(np.transpose([model_points_angular,model_points_radial,model_points_vertical]),keys=positions.keys())
+
+    parameters = deepcopy(meristem_model.parameters)
+    parameters['orientation'] = orientation
+    parameters['dome_apex_x'] = 0
+    parameters['dome_apex_y'] = 0
+    parameters['dome_apex_z'] = 0
+    parameters['dome_phi'] = 0
+    parameters['dome_psi'] = 0
+    parameters['initial_angle'] = 0 
+    parameters['initial_angle'] += meristem_model.parameters['primordium_offset']*golden_angle
+    parameters['initial_angle'] += organ_gap*golden_angle
+    for p in parameters.keys():
+        if ('primordium' in p) and ('angle' in p):
+            #parameters[p] += meristem_model.parameters['primordium_offset']*golden_angle
+            parameters[p] *= meristem_model.parameters['orientation']
+
+    aligned_meristem_model = create_meristem_model(parameters)
+
+    return model_coordinates, aligned_meristem_model
+
+
 
 def meristem_model_registration(meristem_models, nuclei_positions, reference_dome_apex, nuclei_images=[], signal_images=[], reference_model=None, same_individual=False, model_ids=None):
     if model_ids is None:

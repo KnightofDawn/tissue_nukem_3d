@@ -2,7 +2,7 @@ import numpy as np
 
 
 def spherical_parametric_meristem_model(parameters):
-    import numpy as np
+
     dome_apex = np.array([parameters['dome_apex_x'],parameters['dome_apex_y'],parameters['dome_apex_z']])
     dome_scales = np.array([2,2,5])
     dome_radius = parameters['dome_radius']
@@ -41,8 +41,8 @@ def spherical_parametric_meristem_model(parameters):
     meristem_model = {}
     meristem_model['dome_center'] = dome_center
     meristem_model['dome_radius'] = dome_radius
-    meristem_model['dome_scales'] = dome_scales
     meristem_model['dome_axes'] = dome_axes
+    meristem_model['dome_scales'] = dome_scales
 
     meristem_model['primordia_centers'] = primordia_centers
     meristem_model['primordia_radiuses'] = primordia_radiuses
@@ -51,7 +51,6 @@ def spherical_parametric_meristem_model(parameters):
 
 
 def phyllotaxis_based_parametric_meristem_model(parameters):
-    import numpy as np
     
     golden_angle = np.sign(parameters['orientation'])*(2.*np.pi)/((np.sqrt(5)+1)/2.+1)
     initium_angle = np.pi/6.
@@ -98,8 +97,6 @@ def phyllotaxis_based_parametric_meristem_model(parameters):
         parameters['primordium_'+str(primordium+1)+"_radius"] = primordia_radiuses[primordium]
 
     return spherical_parametric_meristem_model(parameters)
-
-
 
 # def phyllotaxis_based_parametric_meristem_model(parameters):
 #     import numpy as np
@@ -186,7 +183,7 @@ def point_nuclei_density(nuclei_positions,points,cell_radius=5,k=1.0):
     return nuclei_density_function(nuclei_positions,cell_radius=cell_radius,k=k)(points[:,0],points[:,1],points[:,2])
 
 
-def meristem_model_density_function(model):
+def meristem_model_density_function(model, density_k=1.0):
     import numpy as np
     dome_center = model['dome_center']
     dome_radius = model['dome_radius']
@@ -194,9 +191,8 @@ def meristem_model_density_function(model):
     primordia_radiuses = model['primordia_radiuses']
     dome_axes = model['dome_axes']
     dome_scales = model['dome_scales']
-    k=1
-    R_dome=1.0
-    R_primordium=1.0
+    # R_dome=1.0
+    # R_primordium=1.0
 
     def density_func(x,y,z):
         mahalanobis_matrix = np.einsum('...i,...j->...ij',dome_axes[0],dome_axes[0])/np.power(dome_scales[0],2.) + np.einsum('...i,...j->...ij',dome_axes[1],dome_axes[1])/np.power(dome_scales[1],2.) + np.einsum('...i,...j->...ij',dome_axes[2],dome_axes[2])/np.power(dome_scales[2],2.)
@@ -210,14 +206,42 @@ def meristem_model_density_function(model):
         # dome_distance = np.power(np.power(x-dome_center[0],2)/np.power(dome_scales[0],2) + np.power(y-dome_center[1],2)/np.power(dome_scales[1],2) + np.power(z-dome_center[2],2)/np.power(dome_scales[2],2),0.5)
         dome_distance = np.power(np.einsum('...ij,...ij->...i',dome_vectors,np.einsum('...ij,...j->...i',mahalanobis_matrix,dome_vectors)),0.5)
 
-        max_radius = R_dome*dome_radius
-        density = 1./2. * (1. - np.tanh(k*(dome_distance - (dome_radius+max_radius)/2.)))
+        max_radius = dome_radius
+        density = 1./2. * (1. - np.tanh(density_k*(dome_distance - (dome_radius+max_radius)/2.)))
         for p in xrange(len(primordia_radiuses)):
             primordium_distance = np.power(np.power(x-primordia_centers[p][0],2) + np.power(y-primordia_centers[p][1],2) + np.power(z-primordia_centers[p][2],2),0.5)
-            max_radius = R_primordium*primordia_radiuses[p]
-            density +=  1./2. * (1. - np.tanh(k*(primordium_distance - (primordia_radiuses[p]+max_radius)/2.)))
+            max_radius = primordia_radiuses[p]
+            density +=  1./2. * (1. - np.tanh(density_k*(primordium_distance - (primordia_radiuses[p]+max_radius)/2.)))
         return density
     return density_func
+
+
+def meristem_model_topomesh(model, grid_resolution=None, smoothing=True):
+    from openalea.mesh.utils.implicit_surfaces import implicit_surface_topomesh
+    from openalea.mesh.property_topomesh_optimization import property_topomesh_vertices_deformation, property_topomesh_edge_flip_optimization
+
+    if grid_resolution is None:
+        grid_resolution = np.array([2,2,2])
+
+    primordia_centers = model['primordia_centers']
+    primordia_radiuses = model['primordia_radiuses']
+    dome_radius = model['dome_radius']
+
+    bounding_box = np.transpose([np.floor(primordia_centers.min(axis=0) - primordia_radiuses.max() - dome_radius/2), np.ceil(primordia_centers.max(axis=0) + primordia_radiuses.max() + dome_radius/2)]).astype(int)
+    bounding_box[2,0] += dome_radius/2
+    bounding_box[2,1] -= dome_radius/4
+    x,y,z = np.ogrid[bounding_box[0,0]:bounding_box[0,1]:grid_resolution[0], bounding_box[1,0]:bounding_box[1,1]:grid_resolution[1], bounding_box[2,0]:bounding_box[2,1]:grid_resolution[2]]
+    grid_size = (x.shape[0],y.shape[1],z.shape[2])
+
+    model_density_field = meristem_model_density_function(model,density_k=0.33)(x,y,z)
+    model_topomesh = implicit_surface_topomesh(model_density_field,grid_size,grid_resolution,iso=0.5,center=False)
+
+    if smoothing:
+        for iterations in range(10):
+            property_topomesh_vertices_deformation(model_topomesh, iterations=10, omega_forces=dict([('taubin_smoothing', 0.65)]), sigma_deformation=1.0, gaussian_sigma=10.0)
+            property_topomesh_edge_flip_optimization(model_topomesh,omega_energies=dict([('regularization',0.15),('neighborhood',0.65)]),simulated_annealing=False,iterations=5)
+    return model_topomesh
+    
 
 def meristem_model_organ_weighted_density_function(model):
     import numpy as np
