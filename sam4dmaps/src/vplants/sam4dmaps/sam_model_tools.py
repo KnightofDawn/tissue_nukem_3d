@@ -216,7 +216,7 @@ def meristem_model_density_function(model, density_k=1.0):
     return density_func
 
 
-def meristem_model_topomesh(model, grid_resolution=None, smoothing=True):
+def meristem_model_topomesh(model, grid_resolution=None, density_k=0.33, smoothing=True):
     from openalea.mesh.utils.implicit_surfaces import implicit_surface_topomesh
     from openalea.mesh.property_topomesh_optimization import property_topomesh_vertices_deformation, property_topomesh_edge_flip_optimization
 
@@ -228,18 +228,18 @@ def meristem_model_topomesh(model, grid_resolution=None, smoothing=True):
     dome_radius = model['dome_radius']
 
     bounding_box = np.transpose([np.floor(primordia_centers.min(axis=0) - primordia_radiuses.max() - dome_radius/2), np.ceil(primordia_centers.max(axis=0) + primordia_radiuses.max() + dome_radius/2)]).astype(int)
-    bounding_box[2,0] += dome_radius/2
-    bounding_box[2,1] -= dome_radius/4
+    # bounding_box[2,0] += dome_radius/2
+    # bounding_box[2,1] -= dome_radius/4
     x,y,z = np.ogrid[bounding_box[0,0]:bounding_box[0,1]:grid_resolution[0], bounding_box[1,0]:bounding_box[1,1]:grid_resolution[1], bounding_box[2,0]:bounding_box[2,1]:grid_resolution[2]]
     grid_size = (x.shape[0],y.shape[1],z.shape[2])
 
-    model_density_field = meristem_model_density_function(model,density_k=0.33)(x,y,z)
+    model_density_field = meristem_model_density_function(model,density_k=density_k)(x,y,z)
     model_topomesh = implicit_surface_topomesh(model_density_field,grid_size,grid_resolution,iso=0.5,center=False)
 
     if smoothing:
         for iterations in range(10):
             property_topomesh_vertices_deformation(model_topomesh, iterations=10, omega_forces=dict([('taubin_smoothing', 0.65)]), sigma_deformation=1.0, gaussian_sigma=10.0)
-            property_topomesh_edge_flip_optimization(model_topomesh,omega_energies=dict([('regularization',0.15),('neighborhood',0.65)]),simulated_annealing=False,iterations=5)
+            # property_topomesh_edge_flip_optimization(model_topomesh,omega_energies=dict([('regularization',0.15),('neighborhood',0.65)]),simulated_annealing=False,iterations=5)
     return model_topomesh
     
 
