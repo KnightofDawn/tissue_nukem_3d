@@ -52,11 +52,12 @@ def reference_meristem_model(dome_apex, n_primordia=8, developmental_time=0.):
     return meristem_model
 
 
-def estimate_meristem_model(positions, size, resolution, meristem_model_parameters=None, n_cycles=2, microscope_orientation=1, organ_weighting=0.3, density_k=0.1, dome_organ_ratio=1.0):
+def estimate_meristem_model(positions, size, resolution, meristem_model_parameters=None, n_cycles=2, microscope_orientation=1, organ_weighting=0.3, density_k=0.1, dome_organ_ratio=1.0, display=False):
     
     np.random.seed(134560)
 
-    grid_resolution = resolution*np.array([8,8,4])
+    # grid_resolution = resolution*np.array([8,8,4])
+    grid_resolution = microscope_orientation*np.array([4.,4.,4.])
     x,y,z = np.ogrid[-0.25*size[0]*resolution[0]:1.25*size[0]*resolution[0]:2*grid_resolution[0],-0.25*size[1]*resolution[1]:1.25*size[1]*resolution[1]:2*grid_resolution[1],-0.25*size[2]*resolution[2]:1.25*size[2]*resolution[2]:2*grid_resolution[2]]
     grid_size = 1.5*size
     # x,y,z = np.ogrid[0:size[0]*resolution[0]:grid_resolution[0],0:size[1]*resolution[1]:grid_resolution[1],0:size[2]*resolution[2]:grid_resolution[2]]
@@ -116,69 +117,134 @@ def estimate_meristem_model(positions, size, resolution, meristem_model_paramete
         internal_energy += 0.1*np.linalg.norm([parameters['dome_phi'],parameters['dome_psi']],1)
         return internal_energy + external_energy
 
-    clockwise_meristem_model = ParametricShapeModel()
-    counterclockwise_meristem_model = ParametricShapeModel()
+    if display:
+        from openalea.core.world import World
+        world = World()
 
-    if meristem_model_parameters is None:
-        initial_parameters = {}
-        initial_parameters['dome_apex_x'] = size[0]*resolution[0]/2.
-        initial_parameters['dome_apex_y'] = size[1]*resolution[1]/2.
-        initial_parameters['dome_apex_z'] = size[2]*resolution[2] if microscope_orientation==1 else 0.
-        initial_parameters['dome_radius'] = 60
-        initial_parameters['initial_angle'] = 0.
-        initial_parameters['dome_psi'] = 0.
-        initial_parameters['dome_phi'] = 0.
-        initial_parameters['n_primordia'] = 8
-        initial_parameters['developmental_time'] = 6.
+        from openalea.core.service.plugin import plugin_instance
+        viewer = plugin_instance('oalab.applet','TissueViewer').vtk
 
-        initial_temperature = 10.
-        minimal_temperature = 0.05
-        lambda_temperature = 0.9
-    else:    
-        initial_parameters = meristem_model_parameters
+    for n_organs in [8]:
+    # for n_organs in [7,8,9]:
+        clockwise_meristem_model = ParametricShapeModel()
+        counterclockwise_meristem_model = ParametricShapeModel()
+
+        if meristem_model_parameters is None:
+            initial_parameters = {}
+            initial_parameters['dome_apex_x'] = size[0]*resolution[0]/2.
+            initial_parameters['dome_apex_y'] = size[1]*resolution[1]/2.
+            initial_parameters['dome_apex_z'] = size[2]*resolution[2] if microscope_orientation==1 else 0.
+            initial_parameters['dome_radius'] = 60
+            initial_parameters['initial_angle'] = 0.
+            initial_parameters['dome_psi'] = 0.
+            initial_parameters['dome_phi'] = 0.
+            initial_parameters['n_primordia'] = n_organs
+            initial_parameters['developmental_time'] = 6.
+
+            initial_temperature = 10.
+            minimal_temperature = 0.05
+            lambda_temperature = 0.9
+        else:    
+            initial_parameters = meristem_model_parameters
+            
+            initial_temperature = 1.
+            minimal_temperature = 0.2
+            lambda_temperature = 0.98
+
+        clockwise_meristem_model.parameters = deepcopy(initial_parameters)
+        clockwise_meristem_model.parameters['orientation'] = 1.
+        clockwise_meristem_model.parametric_function = phyllotaxis_based_parametric_meristem_model
+        clockwise_meristem_model.update_shape_model()
+        # clockwise_meristem_model.density_function = meristem_model_density_function
+        clockwise_meristem_model.density_function = meristem_model_organ_weighted_density_function
+        clockwise_meristem_model.drawing_function = draw_meristem_model_vtk
+
+        counterclockwise_meristem_model.parameters = deepcopy(initial_parameters)
+        counterclockwise_meristem_model.parameters['orientation'] = -1.
+        counterclockwise_meristem_model.parametric_function = phyllotaxis_based_parametric_meristem_model
+        counterclockwise_meristem_model.update_shape_model()
+        # counterclockwise_meristem_model.density_function = meristem_model_density_function
+        counterclockwise_meristem_model.density_function = meristem_model_organ_weighted_density_function
+        counterclockwise_meristem_model.drawing_function = draw_meristem_model_vtk
+
+        if display:
+            world.add(clockwise_meristem_model,'clockwise_meristem_model',_repr_vtk_=draw_meristem_model_vtk,colormap='humidity',alpha=0.5,z_slice=(92,100),display_colorbar=False)
+            world.add(counterclockwise_meristem_model,'counterclockwise_meristem_model',_repr_vtk_=draw_meristem_model_vtk,colormap='vegetation',alpha=0.1,z_slice=(92,100))
+
+
+        optimization_parameters = ['dome_apex_x','dome_apex_y','dome_apex_z','dome_radius','dome_phi','dome_psi','initial_angle','developmental_time']
+
+        for cycle in xrange(n_cycles):
+            temperature = initial_temperature
+            clockwise_meristem_model.perturbate_parameters(10.-cycle,parameters_to_perturbate=optimization_parameters)
+            counterclockwise_meristem_model.perturbate_parameters(10.-cycle,parameters_to_perturbate=optimization_parameters)
+
+            # if display:
+            #     world.add(clockwise_meristem_model,'clockwise_meristem_model',_repr_vtk_=draw_meristem_model_vtk,colormap='humidity',alpha=0.5,z_slice=(92,100),display_colorbar=False)
+            #     world.add(counterclockwise_meristem_model,'counterclockwise_meristem_model',_repr_vtk_=draw_meristem_model_vtk,colormap='humidity',alpha=0.5,z_slice=(92,100),display_colorbar=False)
+                #viewer.save_screenshot("/Users/gcerutti/Desktop/SAM_Model/CounterClockwiseOptimization/model_"+str(cycle+1).zfill(3)+".000.jpg")
+
+            iteration = 0
+            while temperature>minimal_temperature:
+                temperature *= lambda_temperature
+                clockwise_meristem_model.parameter_optimization_annealing(meristem_model_energy,parameters_to_optimize=optimization_parameters,temperature=temperature)
+                counterclockwise_meristem_model.parameter_optimization_annealing(meristem_model_energy,parameters_to_optimize=optimization_parameters,temperature=temperature)
+                iteration += 1
+
+                # if display:
+                #     world.add(clockwise_meristem_model,'clockwise_meristem_model',_repr_vtk_=draw_meristem_model_vtk,colormap='humidity',alpha=0.5,z_slice=(92,100),display_colorbar=False)
+                #     world.add(counterclockwise_meristem_model,'counterclockwise_meristem_model',_repr_vtk_=draw_meristem_model_vtk,colormap='humidity',alpha=0.5,z_slice=(92,100),display_colorbar=False)
+                # viewer.save_screenshot("/Users/gcerutti/Desktop/SAM_Model/CounterClockwiseOptimization/model_"+str(cycle+1).zfill(3)+"."+str(iteration+1).zfill(3)+".jpg")
+            
+
+            if display:
+                world.add(clockwise_meristem_model,'clockwise_meristem_model',_repr_vtk_=draw_meristem_model_vtk,colormap='humidity',alpha=0.5,z_slice=(92,100),display_colorbar=False)
+                world.add(counterclockwise_meristem_model,'counterclockwise_meristem_model',_repr_vtk_=draw_meristem_model_vtk,colormap='humidity',alpha=0.5,z_slice=(92,100),display_colorbar=False)
+               
+            # clockwise_energy = meristem_model_energy(clockwise_meristem_model.parameters,clockwise_meristem_model.shape_model_density_function())
+            # clockwise_meristem_model_plus = deepcopy(clockwise_meristem_model)
+            # clockwise_meristem_model_plus.parameters['n_primordia'] += 1
+            # clockwise_meristem_model_plus.update_shape_model()
+            # world.add(clockwise_meristem_model_plus,'clockwise_meristem_model_plus',_repr_vtk_=draw_meristem_model_vtk,colormap='humidity',alpha=0.5,z_slice=(92,100),display_colorbar=False)
+                    
+            # clockwise_energy_plus = meristem_model_energy(clockwise_meristem_model_plus.parameters,clockwise_meristem_model_plus.shape_model_density_function())
+            # clockwise_meristem_model_minus = deepcopy(clockwise_meristem_model)
+            # clockwise_meristem_model_minus.parameters['n_primordia'] -= 1
+            # clockwise_meristem_model_minus.update_shape_model()
+            # clockwise_energy_minus = meristem_model_energy(clockwise_meristem_model_minus.parameters,clockwise_meristem_model_minus.shape_model_density_function())
+            # print clockwise_meristem_model.parameters['n_primordia'],": ",clockwise_energy
+            # print clockwise_meristem_model_plus.parameters['n_primordia'],": ",clockwise_energy_plus
+            # print clockwise_meristem_model_minus.parameters['n_primordia'],": ",clockwise_energy_minus
+
+            # counterclockwise_energy = meristem_model_energy(counterclockwise_meristem_model.parameters,counterclockwise_meristem_model.shape_model_density_function())
+            # counterclockwise_meristem_model_plus = deepcopy(counterclockwise_meristem_model)
+            # counterclockwise_meristem_model_plus.parameters['n_primordia'] += 1
+            # counterclockwise_meristem_model_plus.update_shape_model()
+            # counterclockwise_energy_plus = meristem_model_energy(counterclockwise_meristem_model_plus.parameters,counterclockwise_meristem_model_plus.shape_model_density_function())
+            # counterclockwise_meristem_model_minus = deepcopy(counterclockwise_meristem_model)
+            # counterclockwise_meristem_model_minus.parameters['n_primordia'] -= 1
+            # counterclockwise_meristem_model_minus.update_shape_model()
+            # counterclockwise_energy_minus = meristem_model_energy(counterclockwise_meristem_model_minus.parameters,counterclockwise_meristem_model_minus.shape_model_density_function())
+            # print counterclockwise_meristem_model.parameters['n_primordia'],": ",counterclockwise_energy
+            # print counterclockwise_meristem_model_plus.parameters['n_primordia'],": ",counterclockwise_energy_plus
+            # print counterclockwise_meristem_model_minus.parameters['n_primordia'],": ",counterclockwise_energy_minus
+            # raw_input()
+
+
+        print n_organs
+
+        clockwise_energy = meristem_model_energy(clockwise_meristem_model.parameters,clockwise_meristem_model.shape_model_density_function())
+        clockwise_void_energy = meristem_model_void_energy(clockwise_meristem_model.parameters,clockwise_meristem_model.shape_model_density_function())
+        clockwise_energy_ratio = clockwise_energy/clockwise_void_energy
+        print "Clockwise Model Energy : ",int(clockwise_energy)," (",int(clockwise_void_energy),")   -->",int(clockwise_energy_ratio*clockwise_energy*n_organs/8.)
         
-        initial_temperature = 1.
-        minimal_temperature = 0.2
-        lambda_temperature = 0.98
+        counterclockwise_energy = meristem_model_energy(counterclockwise_meristem_model.parameters,counterclockwise_meristem_model.shape_model_density_function())
+        counterclockwise_void_energy = meristem_model_void_energy(counterclockwise_meristem_model.parameters,counterclockwise_meristem_model.shape_model_density_function())
+        counterclockwise_energy_ratio = counterclockwise_energy/counterclockwise_void_energy
+        print "Counter-Clockwise Model Energy : ",int(counterclockwise_energy)," (",int(counterclockwise_void_energy),")   -->",int(counterclockwise_energy_ratio*counterclockwise_energy*n_organs/8.)
 
-    clockwise_meristem_model.parameters = deepcopy(initial_parameters)
-    clockwise_meristem_model.parameters['orientation'] = 1.
-    clockwise_meristem_model.parametric_function = phyllotaxis_based_parametric_meristem_model
-    clockwise_meristem_model.update_shape_model()
-    # clockwise_meristem_model.density_function = meristem_model_density_function
-    clockwise_meristem_model.density_function = meristem_model_organ_weighted_density_function
-    clockwise_meristem_model.drawing_function = draw_meristem_model_vtk
+    # raw_input()        
 
-    counterclockwise_meristem_model.parameters = deepcopy(initial_parameters)
-    counterclockwise_meristem_model.parameters['orientation'] = -1.
-    counterclockwise_meristem_model.parametric_function = phyllotaxis_based_parametric_meristem_model
-    counterclockwise_meristem_model.update_shape_model()
-    # counterclockwise_meristem_model.density_function = meristem_model_density_function
-    counterclockwise_meristem_model.density_function = meristem_model_organ_weighted_density_function
-    counterclockwise_meristem_model.drawing_function = draw_meristem_model_vtk
-
-    optimization_parameters = ['dome_apex_x','dome_apex_y','dome_apex_z','dome_radius','dome_phi','dome_psi','initial_angle','developmental_time']
-
-    for cycle in xrange(n_cycles):
-        temperature = initial_temperature
-        clockwise_meristem_model.perturbate_parameters(10.-cycle,parameters_to_perturbate=optimization_parameters)
-        counterclockwise_meristem_model.perturbate_parameters(10.-cycle,parameters_to_perturbate=optimization_parameters)
-
-        while temperature>minimal_temperature:
-            temperature *= lambda_temperature
-            clockwise_meristem_model.parameter_optimization_annealing(meristem_model_energy,parameters_to_optimize=optimization_parameters,temperature=temperature)
-            counterclockwise_meristem_model.parameter_optimization_annealing(meristem_model_energy,parameters_to_optimize=optimization_parameters,temperature=temperature)
-
-    clockwise_energy = meristem_model_energy(clockwise_meristem_model.parameters,clockwise_meristem_model.shape_model_density_function())
-    clockwise_void_energy = meristem_model_void_energy(clockwise_meristem_model.parameters,clockwise_meristem_model.shape_model_density_function())
-    clockwise_energy_ratio = clockwise_energy/clockwise_void_energy
-    print "Clockwise Model Energy : ",clockwise_energy," (",clockwise_void_energy,")   -->",clockwise_energy_ratio
-    
-    counterclockwise_energy = meristem_model_energy(counterclockwise_meristem_model.parameters,counterclockwise_meristem_model.shape_model_density_function())
-    counterclockwise_void_energy = meristem_model_void_energy(counterclockwise_meristem_model.parameters,counterclockwise_meristem_model.shape_model_density_function())
-    counterclockwise_energy_ratio = counterclockwise_energy/counterclockwise_void_energy
-    print "Counter-Clockwise Model Energy : ",counterclockwise_energy," (",counterclockwise_void_energy,")   -->",counterclockwise_energy_ratio
-    
     reference_parameters = deepcopy(clockwise_meristem_model.parameters)
 
     meristem_flexible_model = ParametricShapeModel()
@@ -194,6 +260,11 @@ def estimate_meristem_model(positions, size, resolution, meristem_model_paramete
     # meristem_flexible_model.density_function = meristem_model_density_function
     meristem_flexible_model.density_function = meristem_model_organ_weighted_density_function
     meristem_flexible_model.drawing_function = draw_meristem_model_vtk
+
+
+    # if display:
+        # world.add(meristem_flexible_model,'clockwise_meristem_model',_repr_vtk_=draw_meristem_model_vtk,colormap='humidity',alpha=0.5,z_slice=(92,100),display_colorbar=False)
+        # viewer.save_screenshot("/Users/gcerutti/Desktop/SAM_Model/FlexibleOptimization/model_000.000.jpg")
 
     def meristem_flexible_model_energy(parameters,density_function,x=x,y=y,z=z,nuclei_density=nuclei_density,minimum_density=0.5,reference_parameters=reference_parameters):
         import numpy as np
@@ -212,12 +283,30 @@ def estimate_meristem_model(positions, size, resolution, meristem_model_paramete
     for primordium in xrange(meristem_flexible_model.parameters['n_primordia']) :
       optimization_parameters += ['primordium_'+str(primordium+1)+'_distance','primordium_'+str(primordium+1)+'_angle','primordium_'+str(primordium+1)+"_height",'primordium_'+str(primordium+1)+"_radius"]
 
+    if display:
+        world.remove('clockwise_meristem_model')  
+        world.remove('counterclockwise_meristem_model')    
+        world.add(meristem_flexible_model,'meristem_model',_repr_vtk_=draw_meristem_model_vtk,colormap='humidity',alpha=0.5,z_slice=(92,100),display_colorbar=False)
+        # viewer.save_screenshot("/Users/gcerutti/Desktop/SAM_Model/FlexibleOptimization/model_"+str(cycle+1).zfill(3)+".000.jpg")
+    
+
     for cycle in xrange(n_cycles):
         temperature = initial_temperature
         meristem_flexible_model.perturbate_parameters(10.-cycle,parameters_to_perturbate=optimization_parameters)
+
+
+        iteration = 0
         while temperature>minimal_temperature:
             temperature *= lambda_temperature
             meristem_flexible_model.parameter_optimization_annealing(meristem_flexible_model_energy,parameters_to_optimize=optimization_parameters,temperature=temperature)
+
+            # if display:
+            #   world.add(meristem_flexible_model,'clockwise_meristem_model',_repr_vtk_=draw_meristem_model_vtk,colormap='humidity',alpha=0.5,z_slice=(92,100),display_colorbar=False)
+            #   viewer.save_screenshot("/Users/gcerutti/Desktop/SAM_Model/FlexibleOptimization/model_"+str(cycle+1).zfill(3)+"."+str(iteration+1).zfill(3)+".jpg")
+            iteration += 1
+
+        if display:   
+            world.add(meristem_flexible_model,'meristem_model',_repr_vtk_=draw_meristem_model_vtk,colormap='humidity',alpha=0.5,z_slice=(92,100),display_colorbar=False)
 
     return meristem_flexible_model, clockwise_meristem_model, counterclockwise_meristem_model
 

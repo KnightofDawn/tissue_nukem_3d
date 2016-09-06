@@ -5,6 +5,7 @@ def spherical_parametric_meristem_model(parameters):
 
     dome_apex = np.array([parameters['dome_apex_x'],parameters['dome_apex_y'],parameters['dome_apex_z']])
     dome_scales = np.array([2,2,5])
+    # dome_scales = np.array([parameters['dome_scales_x'],parameters['dome_scales_y'],parameters['dome_scales_z']])
     dome_radius = parameters['dome_radius']
     initial_angle = np.pi*parameters['initial_angle']/180.
 
@@ -167,14 +168,56 @@ def phyllotaxis_based_parametric_meristem_model(parameters):
 def nuclei_density_function(nuclei_positions,cell_radius,k=0.1):
     import numpy as np
     
-    def density_func(x,y,z):
-        density = np.zeros_like(x+y+z,float)
+    def density_func(x,y,z,return_potential=False):
+        
         max_radius = cell_radius
         # max_radius = 0.
 
-        for p in nuclei_positions.keys():
-            cell_distances = np.power(np.power(x-nuclei_positions[p][0],2) + np.power(y-nuclei_positions[p][1],2) + np.power(z-nuclei_positions[p][2],2),0.5)
-            density += 1./2. * (1. - np.tanh(k*(cell_distances - (cell_radius+max_radius)/2.)))
+        points = np.array(nuclei_positions.values())
+
+        if len((x+y+z).shape) == 1:
+            cell_distances = np.power(np.power(x[np.newaxis] - points[:,0,np.newaxis],2) +  np.power(y[np.newaxis] - points[:,1,np.newaxis],2) + np.power(z[np.newaxis] - points[:,2,np.newaxis],2),0.5)
+        elif len((x+y+z).shape) == 2:
+            cell_distances = np.power(np.power(x[np.newaxis] - points[:,0,np.newaxis,np.newaxis],2) +  np.power(y[np.newaxis] - points[:,1,np.newaxis,np.newaxis],2) + np.power(z[np.newaxis] - points[:,2,np.newaxis,np.newaxis],2),0.5)
+        elif len((x+y+z).shape) == 3:
+            cell_distances = np.power(np.power(x[np.newaxis] - points[:,0,np.newaxis,np.newaxis,np.newaxis],2) +  np.power(y[np.newaxis] - points[:,1,np.newaxis,np.newaxis,np.newaxis],2) + np.power(z[np.newaxis] - points[:,2,np.newaxis,np.newaxis,np.newaxis],2),0.5)
+
+        density_potential = 1./2. * (1. - np.tanh(k*(cell_distances - (cell_radius+max_radius)/2.)))
+        density = density_potential.sum(axis=0)
+
+        # density = np.zeros_like(x+y+z)
+        # for p in nuclei_positions.keys():
+        #     cell_distances = np.power(np.power(x-nuclei_positions[p][0],2) + np.power(y-nuclei_positions[p][1],2) + np.power(z-nuclei_positions[p][2],2),0.5)
+        #     density += 1./2. * (1. - np.tanh(k*(cell_distances - (cell_radius+max_radius)/2.)))
+        
+        if return_potential:
+            return density, density_potential
+        else:
+            return density
+    return density_func
+
+
+def sphere_density_function(sphere,k=0.1):
+    center = sphere.parameters['center']
+    radius = sphere.parameters['radius']
+    axes = sphere.parameters['axes']
+    scales = sphere.parameters['scales']
+
+    def density_func(x,y,z):
+        mahalanobis_matrix = np.einsum('...i,...j->...ij',axes[0],axes[0])/np.power(scales[0],2.) + np.einsum('...i,...j->...ij',axes[1],axes[1])/np.power(scales[1],2.) + np.einsum('...i,...j->...ij',axes[2],axes[2])/np.power(scales[2],2.)
+        if x.ndim == 3:
+            vectors = np.zeros((x.shape[0],y.shape[1],z.shape[2],3))
+            vectors[:,:,:,0] = x-center[0]
+            vectors[:,:,:,1] = y-center[1]
+            vectors[:,:,:,2] = z-center[2]
+        elif x.ndim == 1:
+            vectors = np.zeros((x.shape[0],3))
+            vectors[:,0] = x-center[0]
+            vectors[:,1] = y-center[1]
+            vectors[:,2] = z-center[2]
+        distance = np.power(np.einsum('...ij,...ij->...i',vectors,np.einsum('...ij,...j->...i',mahalanobis_matrix,vectors)),0.5)
+
+        density = 1./2. * (1. - np.tanh(k*(distance - radius)))
         return density
     return density_func
 
@@ -216,7 +259,7 @@ def meristem_model_density_function(model, density_k=1.0):
     return density_func
 
 
-def meristem_model_topomesh(model, grid_resolution=None, density_k=0.33, smoothing=True):
+def meristem_model_topomesh(model, grid_resolution=None, density_k=0.33, smoothing=True, topological_optimization=False):
     from openalea.mesh.utils.implicit_surfaces import implicit_surface_topomesh
     from openalea.mesh.property_topomesh_optimization import property_topomesh_vertices_deformation, property_topomesh_edge_flip_optimization
 
@@ -236,10 +279,12 @@ def meristem_model_topomesh(model, grid_resolution=None, density_k=0.33, smoothi
     model_density_field = meristem_model_density_function(model,density_k=density_k)(x,y,z)
     model_topomesh = implicit_surface_topomesh(model_density_field,grid_size,grid_resolution,iso=0.5,center=False)
 
-    if smoothing:
+    if smoothing or topological_optimization:
         for iterations in range(10):
-            property_topomesh_vertices_deformation(model_topomesh, iterations=10, omega_forces=dict([('taubin_smoothing', 0.65)]), sigma_deformation=1.0, gaussian_sigma=10.0)
-            # property_topomesh_edge_flip_optimization(model_topomesh,omega_energies=dict([('regularization',0.15),('neighborhood',0.65)]),simulated_annealing=False,iterations=5)
+            if smoothing:
+                property_topomesh_vertices_deformation(model_topomesh, iterations=10, omega_forces=dict([('taubin_smoothing', 0.65)]), sigma_deformation=1.0, gaussian_sigma=10.0)
+            if topological_optimization:
+                property_topomesh_edge_flip_optimization(model_topomesh,omega_energies=dict([('regularization',0.15),('neighborhood',0.65)]),simulated_annealing=False,iterations=5)
     return model_topomesh
     
 
@@ -275,6 +320,38 @@ def meristem_model_organ_weighted_density_function(model):
             density +=  1./np.power((p+4),0.5) * (1. - np.tanh(k*(primordium_distance - (primordia_radiuses[p]+max_radius)/2.)))
         return density
     return density_func
+
+def plot_meristem_model(figure, meristem_model, r_max=80, color=None, linewidth=2, alpha=0.1, center=True):
+    import matplotlib.pyplot as plt
+    import matplotlib.patches as patch
+
+    if color is None:
+        color = 'k'
+
+    ax = figure.gca()
+
+    if center:
+        dome_center = [0,0]
+    else:
+        dome_center = [meristem_model.parameters['dome_apex_'+xy] for xy in ['x','y']]
+    
+    dome_radius = meristem_model.parameters['dome_radius']
+    dome_circle = patch.Circle(xy=dome_center, radius=dome_radius,ec='k',fc='None',lw=1,alpha=0.1)
+    figure.gca().add_patch(dome_circle)
+
+    orientation = meristem_model.parameters['orientation']
+    
+    for p in xrange(meristem_model.parameters['n_primordia']):
+        organ_radius = meristem_model.parameters['primordium_'+str(p+1)+'_radius']
+        organ_distance = meristem_model.parameters['primordium_'+str(p+1)+'_distance']
+        organ_angle = (meristem_model.parameters['initial_angle'] + meristem_model.parameters['primordium_'+str(p+1)+'_angle'])*np.pi/180.
+        organ_center = [dome_center[0]+organ_distance*np.cos(organ_angle),dome_center[1]+organ_distance*np.sin(organ_angle)]
+        organ_circle = patch.Circle(xy=organ_center, radius=organ_radius,ec=color,fc='None',lw=linewidth,alpha=alpha)
+        ax.add_artist(organ_circle)
+    ax.set_xlim(dome_center[0]-r_max,dome_center[0]+r_max)
+    ax.set_xticklabels(ax.get_xticks())
+    ax.set_ylim(dome_center[1]-r_max,dome_center[1]+r_max)
+    ax.set_yticklabels(ax.get_yticks())
 
 
 def draw_meristem_model_vtk(meristem_model):
@@ -358,6 +435,7 @@ def draw_meristem_model_vtk(meristem_model):
     end_time = time()
     print "<-- Creating VTK PolyData      [",end_time-start_time,"s]"
     return model_polydata
+
 
 def draw_meristem_model_pgl(meristem_model,center=None,mat=None):
     import openalea.plantgl.all as pgl

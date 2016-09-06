@@ -26,10 +26,10 @@ world.clear()
 filenames = []
 signal_names = []
 microscope_orientations = []
-# filenames += ["r2DII_1.2_141202_sam03_t04"]; signal_names += ['DIIV'];  microscope_orientations += [-1]
-# filenames += ["r2DII_1.2_141202_sam03_t08"]; signal_names += ['DIIV'];  microscope_orientations += [-1]
-# filenames += ["r2DII_1.2_141202_sam03_t28"]; signal_names += ['DIIV'];  microscope_orientations += [-1]
-# filenames += ["r2DII_1.2_141202_sam03_t32"]; signal_names += ['DIIV'];  microscope_orientations += [-1]
+## filenames += ["r2DII_1.2_141202_sam03_t04"]; signal_names += ['DIIV'];  microscope_orientations += [-1]
+#filenames += ["r2DII_1.2_141202_sam03_t08"]; signal_names += ['DIIV'];  microscope_orientations += [-1]
+#filenames += ["r2DII_1.2_141202_sam03_t28"]; signal_names += ['DIIV'];  microscope_orientations += [-1]
+#filenames += ["r2DII_1.2_141202_sam03_t32"]; signal_names += ['DIIV'];  microscope_orientations += [-1]
 # filenames += ["r2DII_2.2_141204_sam01_t00"]; signal_names += ['DIIV'];  microscope_orientations += [-1]
 # filenames += ["r2DII_2.2_141204_sam01_t04"]; signal_names += ['DIIV'];  microscope_orientations += [-1]
 # filenames += ["r2DII_2.2_141204_sam01_t08"]; signal_names += ['DIIV'];  microscope_orientations += [-1]
@@ -38,11 +38,11 @@ microscope_orientations = []
 # filenames += ["r2DII_2.2_141204_sam07_t00"]; signal_names += ['DIIV'];  microscope_orientations += [-1]
 # filenames += ["r2DII_2.2_141204_sam07_t04"]; signal_names += ['DIIV'];  microscope_orientations += [-1]
 # filenames += ["r2DII_2.2_141204_sam07_t08"]; signal_names += ['DIIV'];  microscope_orientations += [-1]
-# filenames += ["r2DII_1.2_141202_sam06_t00"]; signal_names += ['DIIV'];  microscope_orientations += [-1]
+## filenames += ["r2DII_1.2_141202_sam06_t00"]; signal_names += ['DIIV'];  microscope_orientations += [-1]
 # filenames += ["r2DII_1.2_141202_sam06_t04"]; signal_names += ['DIIV'];  microscope_orientations += [-1]
 # filenames += ["r2DII_1.2_141202_sam06_t08"]; signal_names += ['DIIV'];  microscope_orientations += [-1]
-# filenames += ["r2DII_1.2_141202_sam06_t24"]; signal_names += ['DIIV'];  microscope_orientations += [-1]
-# filenames += ["r2DII_1.2_141202_sam06_t28"]; signal_names += ['DIIV'];  microscope_orientations += [-1]
+## filenames += ["r2DII_1.2_141202_sam06_t24"]; signal_names += ['DIIV'];  microscope_orientations += [-1]
+#filenames += ["r2DII_1.2_141202_sam06_t28"]; signal_names += ['DIIV'];  microscope_orientations += [-1]
 filenames += ["r2DII_1.2_141202_sam06_t32"]; signal_names += ['DIIV'];  microscope_orientations += [-1]
 
 #filenames += ["DR5N_5.2_150415_sam01_t00"]; signal_names += ['DR5'];  microscope_orientations += [-1]
@@ -76,6 +76,9 @@ for i_file,filename in enumerate(filenames):
     #world.add(reference_images[filename],filename+"_reference_image",resolution=-resolution,colormap='invert_grey')
     #world.add(signal_images[filename],filename+"_signal_image",resolution=-resolution,colormap=signal_colors[signal_name])
 
+import vplants.sam4dmaps.sam_model_tools
+reload(vplants.sam4dmaps.sam_model_tools)
+
 import vplants.sam4dmaps.nuclei_mesh_tools
 reload(vplants.sam4dmaps.nuclei_mesh_tools)
 from vplants.sam4dmaps.nuclei_mesh_tools import nuclei_layer
@@ -83,7 +86,7 @@ from vplants.sam4dmaps.nuclei_mesh_tools import nuclei_layer
 nuclei_positions = {}
 nuclei_signals = {}
 for i_file,filename in enumerate(filenames):
-    topomesh_file = dirname+"/nuclei_images/"+filename+"/"+filename+"_nuclei_signal_topomesh.ply"
+    topomesh_file = dirname+"/nuclei_images/"+filename+"/"+filename+"_nuclei_signal_curvature_topomesh.ply"
     
     try:
         nuclei_signals[filename] = read_ply_property_topomesh(topomesh_file)
@@ -98,32 +101,78 @@ for i_file,filename in enumerate(filenames):
         
         image_positions = array_dict(np.array(positions.values())*microscope_orientations[i_file],positions.keys())
         fluorescence_ratios = compute_fluorescence_ratios(reference_images[filename],signal_images[filename],image_positions,negative=(signal_names[i_file] in ['DIIV']))
-        cell_layer = nuclei_layer(positions,size,-resolution)
         
+        import vplants.sam4dmaps.sam_model_tools
+        reload(vplants.sam4dmaps.sam_model_tools)
+        from vplants.sam4dmaps.sam_model_tools import nuclei_density_function
+    
+        import vplants.sam4dmaps.nuclei_mesh_tools
+        reload(vplants.sam4dmaps.nuclei_mesh_tools)
+        from vplants.sam4dmaps.nuclei_mesh_tools import nuclei_layer, nuclei_curvature 
+        
+        cell_layer, triangulation_topomesh, surface_topomesh = nuclei_layer(positions,size,-resolution,return_topomesh=True)
+        
+            
+        import vplants.sam4dmaps.sam_model_tools
+        reload(vplants.sam4dmaps.sam_model_tools)
+        from vplants.sam4dmaps.sam_model_tools import nuclei_density_function
+        
+        import vplants.sam4dmaps.nuclei_mesh_tools
+        reload(vplants.sam4dmaps.nuclei_mesh_tools)
+        from vplants.sam4dmaps.nuclei_mesh_tools import nuclei_layer, nuclei_curvature 
+        
+        cell_curvature = nuclei_curvature(positions,cell_layer,size,-resolution,surface_topomesh)
+        
+        triangulation_topomesh.update_wisp_property('signal',0,fluorescence_ratios)
+        triangulation_topomesh.update_wisp_property('mean_curvature',0,cell_curvature)
+    
         nuclei_points = vertex_topomesh(positions)
         nuclei_points.update_wisp_property('signal',0,fluorescence_ratios)
         nuclei_points.update_wisp_property('layer',0,cell_layer)
+        nuclei_points.update_wisp_property('mean_curvature',0,cell_curvature)
         
         nuclei_signals[filename] = nuclei_points
-        save_ply_property_topomesh(nuclei_signals[filename],topomesh_file,properties_to_save=dict([(0,['signal','layer']),(1,[]),(2,[]),(3,[])]),color_faces=False)
-
-    #world.add(nuclei_signals[filename],filename+"_nuclei")
-    #world[filename+"_nuclei_vertices"].set_attribute("polydata_colormap",load_colormaps()[signal_colors[signal_name]])
-    #world[filename+"_nuclei"].set_attribute("property_name_0",'layer')
-    #world[filename+"_nuclei"].set_attribute("property_name_0",'signal')
-    #world[filename+"_nuclei_vertices"].set_attribute("intensity_range",(0.0,0.8))
-
+        save_ply_property_topomesh(nuclei_signals[filename],topomesh_file,properties_to_save=dict([(0,['signal','layer','mean_curvature']),(1,[]),(2,[]),(3,[])]),color_faces=False)
     
+    world.add(nuclei_signals[filename],filename+"_nuclei")
+    #world[filename+"_nuclei_vertices"].set_attribute("polydata_colormap",load_colormaps()['grey'])
+    world[filename+"_nuclei_vertices"].set_attribute("polydata_colormap",load_colormaps()[signal_colors[signal_name]])
+    #world[filename+"_nuclei_vertices"].set_attribute("polydata_colormap",load_colormaps()['curvature'])
+    #world[filename+"_nuclei"].set_attribute("property_name_0",'layer')
+    #world[filename+"_nuclei"].set_attribute("property_name_0",'mean_curvature')
+    world[filename+"_nuclei"].set_attribute("property_name_0",'signal')
+    world[filename+"_nuclei_vertices"].set_attribute("intensity_range",(0.0,0.8))
+    #world[filename+"_nuclei_vertices"].set_attribute("intensity_range",(-1,0))
+    #world[filename+"_nuclei_vertices"].set_attribute("point_radius",2.*nuclei_signals[filename].nb_wisps(0))
+    world[filename+"_nuclei_vertices"].set_attribute("point_radius",2)
+    
+    
+
+
+
 meristem_models = {}
 for i_file,filename in enumerate(filenames):
     meristem_model_file = dirname+"/nuclei_images/"+filename+"/"+filename+"_meristem_model.prm"
-    meristem_models[filename] = read_meristem_model(meristem_model_file)
     
-    #world.add(meristem_models[filename],filename+"_meristem_model",_repr_vtk_=meristem_models[filename].drawing_function,colormap='leaf',alpha=0.1,z_slice=(95,100))
+    try:
+        meristem_models[filename] = read_meristem_model(meristem_model_file)
+    except:
+        import vplants.sam4dmaps.sam_model
+        reload(vplants.sam4dmaps.sam_model)
+        from vplants.sam4dmaps.sam_model import estimate_meristem_model
+        
+        positions = nuclei_positions[filename]
+        
+        size = np.array(reference_images[filename].shape)
+        resolution = np.array(reference_images[filename].resolution)
+    
+        meristem_model = estimate_meristem_model(positions,size,-resolution,microscope_orientation=microscope_orientations[i_file],display=True)
+    
+    # world.add(meristem_models[filename],filename+"_meristem_model",_repr_vtk_=meristem_models[filename].drawing_function,colormap='leaf',alpha=0.1,z_slice=(95,100))
 
 import vplants.sam4dmaps.sam_model_registration
 reload(vplants.sam4dmaps.sam_model_registration)
-from vplants.sam4dmaps.sam_model_registration import meristem_model_registration, meristem_model_organ_gap, meristem_model_alignement, meristem_model_cylindrical_coordinates
+from vplants.sam4dmaps.sam_model_registration import meristem_model_registration, meristem_model_organ_gap, meristem_model_alignement, meristem_model_cylindrical_coordinates, meristem_model_composite_cylindrical_coordinates
 
 import vplants.sam4dmaps.sam_map_construction
 reload(vplants.sam4dmaps.sam_map_construction)
@@ -133,12 +182,27 @@ import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
 import pylab
 import matplotlib.patches as patch
+from matplotlib import cm
+from matplotlib.colors import LightSource, Normalize
 from vplants.meshing.cute_plot import simple_plot
 
-reference_dome_apex = np.array([(size*resolution/2.)[0],(size*resolution/2.)[0],0])
+for colormap_name in ['curvature']:
+    color_dict = load_colormaps()[colormap_name]._color_points
+    mpl_color_dict = {}
+    for k,col in enumerate(['red','green','blue']):
+        mpl_color_dict[col] = ()
+    for p in np.sort(color_dict.keys()):
+        for k,col in enumerate(['red','green','blue']):
+            mpl_color_dict[col] += ((p,color_dict[p][k],color_dict[p][k]),)
+    plt.register_cmap(name=colormap_name, data=mpl_color_dict)
+
+
+
+#reference_dome_apex = np.array([(size*resolution/2.)[0],(size*resolution/2.)[0],0])
+reference_dome_apex = np.zeros(3)
 n_organs = 8
 
-world.clear()
+#world.clear()
 
 reference_model = reference_meristem_model(reference_dome_apex,n_primordia=n_organs,developmental_time=0)
 orientation = reference_model.parameters['orientation']
@@ -146,78 +210,96 @@ orientation = reference_model.parameters['orientation']
 golden_angle = np.sign(orientation)*(2.*np.pi)/((np.sqrt(5)+1)/2.+1)
 golden_angle = 180.*golden_angle/np.pi    
 
+
+
+
 time_cylindrical_coords = {}
 time_epidermis_cells = {}
 time_signal_ratios = {}
+time_mean_curvatures = {}
+time_surface_altitudes = {}
+
+time_composite_coords = {}
+time_aligned_models = {}
+time_organ_gaps = {}
+
+time_nuclei_densities = {}
+time_model_densities = {}
+#time_signal_maps = {}
+#time_curvature_maps = {}
+#time_altitude_maps = {}
 
 time_radius = 0.0
 time_density_k = 2.0
 
-previous_offset = 0
-previous_reference_model = reference_model
+
+
+same_individual = True
+if same_individual:
+    previous_offset = 0
+    previous_reference_model = reference_model
+    
+normalize_maps = True
+composite_coords = True
+
+data_names = ['auxin', 'curvature', 'altitude']
+
+data_colormaps = dict(zip(data_names,['viridis','curvature','jet']))
+data_ranges = dict(zip(data_names,[(0.4,0.7),(-0.05,0.05),(-60,-10)]))
+#data_ranges = dict(zip(data_names,[(0.6,1.0),(-0.2,0.8),(0.2,0.8)]))
+time_data_maps = dict(zip(data_names,[{},{},{}]))
+
+import vplants.sam4dmaps.sam_model_tools
+reload(vplants.sam4dmaps.sam_model_tools)
+
+import vplants.sam4dmaps.sam_model_registration
+reload(vplants.sam4dmaps.sam_model_registration)
+from vplants.sam4dmaps.sam_model_registration import meristem_model_composite_cylindrical_coordinates, compose_meristem_model_cylindrical_coordinates
+
 for  i_file,filename in enumerate(filenames):
 #for  i_file,filename in enumerate(['r2DII_1.2_141202_sam03_t08','r2DII_1.2_141202_sam03_t28','r2DII_1.2_141202_sam06_t08','r2DII_2.2_141204_sam07_t00']):
    
     meristem_model = meristem_models[filename]
-    positions = nuclei_positions[filename]
+    positions = array_dict(nuclei_positions[filename])
     reference_image = reference_images[filename]
     signal_image = signal_images[filename]
     
-    organ_gap = meristem_model_organ_gap(reference_model,meristem_models[filename],same_individual=False)
-    print filename," : ",organ_gap," [",meristem_models[filename].parameters['primordium_offset'],"->",meristem_models[filename].parameters['orientation']*meristem_models[filename].parameters['primordium_1_angle'] - golden_angle,"] (",meristem_models[filename].parameters['orientation'],")",
-    
-    # if i_file == 0:
-    #     plastochron_gap = meristem_model_organ_gap(reference_model,meristem_models[filename],same_individual=False)
-    # else:
-    #     #plastochron_gap = meristem_model_organ_gap(reference_model,meristem_models[filename],same_individual=True)
-    #     plastochron_gap = meristem_model_organ_gap(previous_reference_model,meristem_models[filename],same_individual=True)
-    # plastochron_gap += previous_offset
-    # previous_offset = plastochron_gap
-    # previous_reference_model = meristem_models[filename]
-    
-    #plastochron_gap = 0
+    if same_individual:
+        if i_file == 0:
+            organ_gap = meristem_model_organ_gap(reference_model,meristem_models[filename],same_individual=False)
+        else:
+            hour_gap = float(int(filename[-2:]) - int(filenames[i_file-1][-2:]))
+            #organ_gap = meristem_model_organ_gap(reference_model,meristem_models[filename],same_individual=True)
+            organ_gap = meristem_model_organ_gap(previous_reference_model,meristem_models[filename],same_individual=True,hour_gap=hour_gap)
+        organ_gap += previous_offset
+        previous_offset = organ_gap
+        previous_reference_model = meristem_models[filename]
+    else:
+        organ_gap = meristem_model_organ_gap(reference_model,meristem_models[filename],same_individual=False)
+    print filename," : ",organ_gap," [",meristem_models[filename].parameters['primordium_offset'],"->",meristem_models[filename].parameters['orientation']*meristem_models[filename].parameters['primordium_1_angle'] - golden_angle,"] (",meristem_models[filename].parameters['orientation'],")"
     
     epidermis_cells = np.array(list(nuclei_signals[filename].wisps(0)))[nuclei_signals[filename].wisp_property('layer',0).values() == 1]
+    
     signal_ratios = nuclei_signals[filename].wisp_property('signal',0)
+    mean_curvatures = nuclei_signals[filename].wisp_property('mean_curvature',0)
+    
+    if composite_coords:
+        organ_coords, memberships, aligned_meristem_model = meristem_model_composite_cylindrical_coordinates(meristem_model,positions,-organ_gap,orientation)
+        coords, _ = compose_meristem_model_cylindrical_coordinates(reference_model,organ_coords, memberships, organ_gap=organ_gap)
         
-    #for plastochron_gap in [-4,-3,-2,-1,0,1,2,3,4]:
-    for plastochron_gap in [-1,0,1,2]:
-        print filename,plastochron_gap,"( t =",plastochron_gap + (meristem_models[filename].parameters['developmental_time']%9.)/9.,")   [",meristem_models[filename].parameters['developmental_time']/9.,"]"
-        
-        developmental_time = plastochron_gap + (meristem_models[filename].parameters['developmental_time']%9.)/9.
-    
-        #coords, aligned_meristem_model = meristem_model_cylindrical_coordinates(meristem_model,positions,plastochron_gap,orientation)
-        coords, aligned_meristem_model = meristem_model_cylindrical_coordinates(meristem_model,positions,-plastochron_gap - organ_gap,orientation)
-    
-        time_cylindrical_coords[developmental_time] = coords
-    
-        time_epidermis_cells[developmental_time] = epidermis_cells
-        time_signal_ratios[developmental_time] = signal_ratios
-      
-        epidermis_nuclei_ratio, epidermis_model_density, epidermis_positions, T, R = meristem_2d_cylindrical_map(coords, aligned_meristem_model, epidermis_cells, signal_ratios)
-            
-        map_figure = plt.figure(1)
-        map_figure.clf()
-        map_figure.patch.set_facecolor('white')
-        ax = plt.subplot(111, polar=True)
-
-        draw_signal_map(map_figure,epidermis_nuclei_ratio,T,R,epidermis_model_density,colormap='viridis', n_levels=0, ratio_min=0.0, ratio_max=1.0)
-        plt.show(block=False)
-        map_figure.savefig("/Users/gcerutti/Desktop/2Dt_SignalMaps/map_"+filename+"_"+str(plastochron_gap)+".jpg")
-            
-        figure = plt.figure(2)
+        figure = plt.figure(0)
         figure.clf()
-        figure.patch.set_facecolor('white')
+        figure.patch.set_facecolor('w')
         ax = plt.subplot(111, polar=True)
-        
-        for p in xrange(n_organs):
-            organ_radius = reference_model.parameters['primordium_'+str(p+1)+'_radius']
-            organ_distance = reference_model.parameters['primordium_'+str(p+1)+'_distance']
-            organ_angle = reference_model.parameters['primordium_'+str(p+1)+'_angle']*np.pi/180.
-            organ_center = [organ_distance*np.cos(organ_angle),organ_distance*np.sin(organ_angle)]
-            organ_circle = pylab.Circle(xy=organ_center, radius=organ_radius,transform=ax.transProjectionAffine + ax.transAxes ,ec='g',fc='None',lw=3)
-            ax.add_artist(organ_circle)
-    
+             
+        # for p in xrange(n_organs):
+        #     organ_radius = reference_model.parameters['primordium_'+str(p+1)+'_radius']
+        #     organ_distance = reference_model.parameters['primordium_'+str(p+1)+'_distance']
+        #     organ_angle = reference_model.parameters['primordium_'+str(p+1)+'_angle']*np.pi/180.
+        #     organ_center = [organ_distance*np.cos(organ_angle),organ_distance*np.sin(organ_angle)]
+        #     organ_circle = pylab.Circle(xy=organ_center, radius=organ_radius,transform=ax.transProjectionAffine + ax.transAxes ,ec='g',fc='None',lw=2,alpha=0.2)
+        #     ax.add_artist(organ_circle)
+            
         for p in xrange(n_organs):
             organ_radius = aligned_meristem_model.parameters['primordium_'+str(p+1)+'_radius']
             #organ_distance = meristem_model.parameters['primordium_'+str(p+1)+'_distance']
@@ -227,23 +309,144 @@ for  i_file,filename in enumerate(filenames):
             organ_circle = pylab.Circle(xy=organ_center, radius=organ_radius,transform=ax.transProjectionAffine + ax.transAxes ,ec='k',fc='None',lw=1,alpha=0.2)
             ax.add_artist(organ_circle)
             
-        ax.scatter(coords.values(epidermis_cells)[:,0]*np.pi/180.,coords.values(epidermis_cells)[:,1],s=15.0,c='w',alpha=0.2)
-                  
+        #mpl_colormap = cm.ScalarMappable(norm=Normalize(vmin=0, vmax=1),cmap=cm.cmap_d['jet'])
+        #rgb = mpl_colormap.to_rgba(1-memberships.values(epidermis_cells)[:,0])
+                
+        mpl_colormap = cm.ScalarMappable(norm=Normalize(vmin=data_ranges['auxin'][0], vmax=data_ranges['auxin'][1]),cmap=cm.cmap_d[data_colormaps['auxin']])
+        rgb = mpl_colormap.to_rgba(signal_ratios.values(epidermis_cells))
+        
+        ax.scatter(organ_coords.values(epidermis_cells)[:,0,0]*np.pi/180.,organ_coords.values(epidermis_cells)[:,0,1],s=100.0,c=rgb,alpha=1)
+                 
+        ax.set_rmax(160)
+        ax.set_rmin(0)
+        ax.grid(True)
+        ax.set_yticklabels([])
+        
+        figure.set_size_inches(14, 10)
+        figure.patch.set_facecolor('k')
+        figure.gca().set_axis_bgcolor('k')
+    
+        figure.savefig("/Users/gcerutti/Desktop/2Dt_SignalMaps/Nuclei/nuclei_"+filename+".jpg",facecolor=figure.get_facecolor(), edgecolor='none')
+        
+        
+        figure = plt.figure(1)
+        figure.clf()
+        figure.patch.set_facecolor('white')
+        ax = plt.subplot(111, polar=True)
+             
+        for p in xrange(n_organs):
+            organ_radius = reference_model.parameters['primordium_'+str(p+1)+'_radius']
+            organ_distance = reference_model.parameters['primordium_'+str(p+1)+'_distance']
+            organ_angle = reference_model.parameters['primordium_'+str(p+1)+'_angle']*np.pi/180.
+            organ_center = [organ_distance*np.cos(organ_angle),organ_distance*np.sin(organ_angle)]
+            organ_circle = pylab.Circle(xy=organ_center, radius=organ_radius,transform=ax.transProjectionAffine + ax.transAxes ,ec='g',fc='None',lw=2,alpha=0.2)
+            ax.add_artist(organ_circle)
+            
+        #mpl_colormap = cm.ScalarMappable(norm=Normalize(vmin=0, vmax=1),cmap=cm.cmap_d['jet'])
+        #rgb = mpl_colormap.to_rgba(1-memberships.values(epidermis_cells)[:,0])
+        
+        mpl_colormap = cm.ScalarMappable(norm=Normalize(vmin=data_ranges['auxin'][0], vmax=data_ranges['auxin'][1]),cmap=cm.cmap_d[data_colormaps['auxin']])
+        rgb = mpl_colormap.to_rgba(signal_ratios.values(epidermis_cells))
+        
+        ax.scatter(coords.values(epidermis_cells)[:,0]*np.pi/180.,coords.values(epidermis_cells)[:,1],s=25.0,c=rgb,alpha=1)
+                      
         ax.set_rmax(160)
         ax.set_rmin(0)
         ax.grid(True)
         ax.set_yticklabels([])
         plt.show(block=False)
-        figure.savefig("/Users/gcerutti/Desktop/2Dt_SignalMaps/nuclei_"+filename+"_"+str(plastochron_gap)+".jpg")
-            
-    import vplants.sam4dmaps.sam_model_tools
-    reload(vplants.sam4dmaps.sam_model_tools)
-    from vplants.sam4dmaps.sam_model_tools import meristem_model_topomesh
     
-    model_topomesh = meristem_model_topomesh(reference_model.shape_model,grid_resolution = np.array([4,4,4]))
-    world.add(model_topomesh,"model_topomesh")
-
-
+    
+    #plastochron_gap = 0
+    #for plastochron_gap in [0,1,2]:
+    #for plastochron_gap in range(-1,10):
+    for plastochron_gap in [0]:
+        print filename,plastochron_gap,"( t =",plastochron_gap + (meristem_models[filename].parameters['developmental_time']%9.)/9.,")   [",meristem_models[filename].parameters['developmental_time']/9.,"]"
+        
+        developmental_time = plastochron_gap + (meristem_models[filename].parameters['developmental_time']%9.)/9.
+        if same_individual:
+            developmental_time += organ_gap
+        
+        #coords, aligned_meristem_model = meristem_model_cylindrical_coordinates(meristem_model,positions,plastochron_gap,orientation)
+        coords, aligned_meristem_model = meristem_model_cylindrical_coordinates(meristem_model,positions,-plastochron_gap - organ_gap,orientation)
+    
+        time_cylindrical_coords[developmental_time] = coords
+        
+        if composite_coords:
+            organ_coords, memberships, aligned_meristem_model = meristem_model_composite_cylindrical_coordinates(meristem_model,positions,-plastochron_gap -organ_gap,orientation)
+            
+            time_composite_coords[developmental_time] = (organ_coords, memberships)
+            time_aligned_models[developmental_time] = aligned_meristem_model
+            time_organ_gaps[developmental_time] = organ_gap + plastochron_gap
+    
+        time_epidermis_cells[developmental_time] = epidermis_cells
+        time_signal_ratios[developmental_time] = signal_ratios
+        time_mean_curvatures[developmental_time] = mean_curvatures
+        
+        altitudes = array_dict(coords.values()[:,2],coords.keys())
+        time_surface_altitudes[developmental_time] = altitudes 
+        
+        time_data = dict(zip(data_names,[signal_ratios, mean_curvatures, altitudes]))
+        
+        map_figure = plt.figure(1)
+            
+        for data_name in data_names:
+            
+            
+            if normalize_maps:
+                epidermis_map, epidermis_model_density, epidermis_nuclei_density, T, R = meristem_2d_cylindrical_map(coords, aligned_meristem_model, epidermis_cells, time_data[data_name], normalize=True)
+            else:
+                epidermis_map, epidermis_model_density, epidermis_nuclei_density, T, R = meristem_2d_cylindrical_map(coords, aligned_meristem_model, epidermis_cells, time_data[data_name], normalize=False)
+        
+            time_model_densities[developmental_time] = epidermis_model_density
+            time_nuclei_densities[developmental_time] = epidermis_nuclei_density
+       
+            time_data_maps[data_name][developmental_time] = epidermis_map
+            
+            if plastochron_gap == 0:
+                map_figure.clf()
+                map_figure.patch.set_facecolor('white')
+                ax = plt.subplot(111, polar=True)
+            
+                if normalize_maps:
+                    draw_signal_map(map_figure,epidermis_map,T,R,epidermis_model_density,colormap=data_colormaps[data_name], n_levels=20, ratio_min=0, ratio_max=1)
+                else:
+                    draw_signal_map(map_figure,epidermis_map,T,R,epidermis_model_density,colormap=data_colormaps[data_name], n_levels=20, ratio_min=data_ranges[data_name][0], ratio_max=data_ranges[data_name][1])
+            
+                plt.show(block=False)
+                map_figure.savefig("/Users/gcerutti/Desktop/2Dt_SignalMaps/"+data_name.capitalize()+"/"+data_name+"_"+filename+"_"+str(plastochron_gap)+".jpg")
+                
+        # figure = plt.figure(2)
+        # figure.clf()
+        # figure.patch.set_facecolor('white')
+        # ax = plt.subplot(111, polar=True)
+        
+        # for p in xrange(n_organs):
+        #     organ_radius = reference_model.parameters['primordium_'+str(p+1)+'_radius']
+        #     organ_distance = reference_model.parameters['primordium_'+str(p+1)+'_distance']
+        #     organ_angle = reference_model.parameters['primordium_'+str(p+1)+'_angle']*np.pi/180.
+        #     organ_center = [organ_distance*np.cos(organ_angle),organ_distance*np.sin(organ_angle)]
+        #     organ_circle = pylab.Circle(xy=organ_center, radius=organ_radius,transform=ax.transProjectionAffine + ax.transAxes ,ec='g',fc='None',lw=3)
+        #     ax.add_artist(organ_circle)
+    
+        # for p in xrange(n_organs):
+        #     organ_radius = aligned_meristem_model.parameters['primordium_'+str(p+1)+'_radius']
+        #     #organ_distance = meristem_model.parameters['primordium_'+str(p+1)+'_distance']
+        #     #organ_angle = (meristem_model.parameters['primordium_'+str(p+1)+'_angle'] + (plastochron_gap + meristem_model.parameters['primordium_offset'])*golden_angle)*np.pi/180.
+        #     #organ_center = [organ_distance*np.cos(organ_angle),organ_distance*np.sin(organ_angle)]
+        #     organ_center = aligned_meristem_model.shape_model['primordia_centers'][p][:2]
+        #     organ_circle = pylab.Circle(xy=organ_center, radius=organ_radius,transform=ax.transProjectionAffine + ax.transAxes ,ec='k',fc='None',lw=1,alpha=0.2)
+        #     ax.add_artist(organ_circle)
+            
+        # ax.scatter(coords.values(epidermis_cells)[:,0]*np.pi/180.,coords.values(epidermis_cells)[:,1],s=15.0,c='w',alpha=0.2)
+                  
+        # ax.set_rmax(160)
+        # ax.set_rmin(0)
+        # ax.grid(True)
+        # ax.set_yticklabels([])
+        # plt.show(block=False)
+        # figure.savefig("/Users/gcerutti/Desktop/2Dt_SignalMaps/Nuclei/nuclei_"+filename+"_"+str(plastochron_gap)+".jpg")
+            
 
     
     # epidermis_cells = np.array(list(nuclei_signals[filename].wisps(0)))[nuclei_signals[filename].wisp_property('layer',0).values() == 1]
@@ -256,14 +459,216 @@ for  i_file,filename in enumerate(filenames):
     # plt.show(block=False)
     # raw_input()
 
-developmental_times = np.arange(19.)
+    
+time_data = dict(zip(data_names,[time_signal_ratios, time_mean_curvatures, time_surface_altitudes]))
+
+time_radius = 0.1
+time_density_k = 0.1
+
+developmental_times = np.arange(45.)/1.+1
+#developmental_times = np.arange(51.)/1.+25
+#developmental_times = np.arange(181.)/2.+10
+#developmental_times = np.arange(46.)/5. + 25
+#developmental_times = np.arange(72.)
+
+import vplants.sam4dmaps.sam_map_construction
+reload(vplants.sam4dmaps.sam_map_construction)
+from vplants.sam4dmaps.sam_map_construction import meristem_2d_polar_map, meristem_2d_cylindrical_map, meristem_2dt_cylindrical_map, meristem_2dt_cylindrical_map_from_maps, draw_signal_map, extract_signal_map_maxima
+
+map_3d = False
 
 for d_time in developmental_times:
     
     reference_model = reference_meristem_model(np.array([0,0,0]),n_primordia=n_organs,developmental_time=d_time)
 
-    epidermis_nuclei_ratio, epidermis_model_density, epidermis_positions, T, R = meristem_2dt_cylindrical_map(time_cylindrical_coords, d_time, reference_model, time_epidermis_cells, time_signal_ratios, time_radius=0.0, time_density_k=2.0)
+    #for data, time_maps, data_name, colormap_name, data_range in zip(time_data,time_data_maps,data_names,data_colormaps,data_ranges):
+    
+    
+    altitude_map, epidermis_model_density, epidermis_positions, T, R = meristem_2dt_cylindrical_map_from_maps(time_data_maps['altitude'], d_time, T, R, reference_model, time_data['altitude'], normalize=False, time_radius=time_radius, time_density_k=time_density_k) 
+     
+    #for data_name in data_names:
+    for data_name in ['auxin']:
+        #epidermis_map, epidermis_model_density, epidermis_positions, T, R = meristem_2dt_cylindrical_map(time_cylindrical_coords, d_time, reference_model, time_epidermis_cells, data, normalize=False, time_radius=time_radius, time_density_k=time_density_k)
+        #epidermis_map, epidermis_model_density, epidermis_positions, T, R = meristem_2dt_cylindrical_map_from_maps(time_data_maps[data_name], d_time, T, R, reference_model, time_data[data_name], normalize=False, time_radius=time_radius, time_density_k=time_density_k)
+        epidermis_map, epidermis_model_density, epidermis_positions, T, R = meristem_2dt_cylindrical_map_from_maps(time_data_maps[data_name], d_time, T, R, None, time_data[data_name], time_meristem_densities=time_model_densities, normalize=False, time_radius=time_radius, time_density_k=time_density_k)
+    
+        figure = plt.figure(0)
+        figure.clf()
+        
+        if normalize_maps:
+            draw_signal_map(figure,epidermis_map,T,R,epidermis_model_density,colormap=data_colormaps[data_name], n_levels=20, ratio_min=0, ratio_max=1.0)
+        else:
+            draw_signal_map(figure,epidermis_map,T,R,epidermis_model_density,colormap=data_colormaps[data_name], n_levels=20, ratio_min=data_ranges[data_name][0], ratio_max=data_ranges[data_name][1])
 
+        figure.patch.set_facecolor('k')
+        figure.gca().set_axis_bgcolor('k')
+        figure.set_size_inches(14, 10)
+        
+        figure.savefig("/Users/gcerutti/Desktop/2Dt_SignalMaps/"+data_name.capitalize()+"/Atlas/"+data_name+"_2dt_"+str(100*d_time)+".jpg",facecolor=figure.get_facecolor(), edgecolor='none')
+        
+        if composite_coords:
+            
+            time_composed_coords = {}
+            time_memberships = {}
+            for t in time_composite_coords.keys():
+                
+                time_distance = np.abs(d_time/9. - t)
+                time_potential = 1./2. * (1. - np.tanh(time_density_k*(time_distance - time_radius)))
+                time_memberships[t] = time_potential
+                
+                organ_coords, memberships = time_composite_coords[t]
+                #organ_gap = int(np.floor((d_time-0.001)/9)) - time_organ_gaps[t]
+                organ_gap = time_organ_gaps[t] - int(np.floor((d_time-0.001)/9)) + 1*(d_time>9)
+                coords, _ = compose_meristem_model_cylindrical_coordinates(reference_model,organ_coords, memberships, organ_gap=organ_gap)
+                time_composed_coords[t] = coords
+                
+            time_memberships = dict(zip(time_memberships.keys(),np.array(time_memberships.values())/np.sum(time_memberships.values())))
+            
+            epidermis_map, epidermis_model_density, epidermis_positions, T, R = meristem_2dt_cylindrical_map(time_composed_coords, d_time, reference_model, time_epidermis_cells, time_data[data_name], normalize=normalize_maps, time_radius=time_radius, time_density_k=time_density_k)
+        
+            figure = plt.figure(1)
+            figure.clf()
+            
+            if normalize_maps:
+                draw_signal_map(figure,epidermis_map,T,R,epidermis_model_density,colormap=data_colormaps[data_name], n_levels=20, ratio_min=0, ratio_max=1.0)
+            else:
+                draw_signal_map(figure,epidermis_map,T,R,epidermis_model_density,colormap=data_colormaps[data_name], n_levels=20, ratio_min=data_ranges[data_name][0], ratio_max=data_ranges[data_name][1])
+    
+            figure.patch.set_facecolor('k')
+            figure.gca().set_axis_bgcolor('k')
+            figure.set_size_inches(14, 10)
+            
+            figure.savefig("/Users/gcerutti/Desktop/2Dt_SignalMaps/"+data_name.capitalize()+"/MotionAtlas/"+data_name+"_2dt_"+str(100*d_time)+".jpg",facecolor=figure.get_facecolor(), edgecolor='none')
+            
+        
+            figure = plt.figure(2)
+            figure.clf()
+            ax = plt.subplot(111, polar=True)
+            
+            for p in xrange(n_organs):
+                organ_radius = reference_model.parameters['primordium_'+str(p+1)+'_radius']
+                organ_distance = reference_model.parameters['primordium_'+str(p+1)+'_distance']
+                organ_angle = reference_model.parameters['primordium_'+str(p+1)+'_angle']*np.pi/180.
+                organ_center = [organ_distance*np.cos(organ_angle),organ_distance*np.sin(organ_angle)]
+                organ_circle = pylab.Circle(xy=organ_center, radius=organ_radius,transform=ax.transProjectionAffine + ax.transAxes ,ec='g',fc='None',lw=2,alpha=0.2)
+                ax.add_artist(organ_circle)
+        
+            mpl_colormap = cm.ScalarMappable(norm=Normalize(vmin=data_ranges['auxin'][0], vmax=data_ranges['auxin'][1]),cmap=cm.cmap_d[data_colormaps['auxin']])
+            
+            for t in time_composite_coords.keys():
+                coords = time_composed_coords[t]
+                epidermis_cells = time_epidermis_cells[t]
+                signal_values = time_data[data_name][t]
+                rgb = mpl_colormap.to_rgba(signal_ratios.values(epidermis_cells))
+                ax.scatter(coords.values(epidermis_cells)[:,0]*np.pi/180.,coords.values(epidermis_cells)[:,1],s=25.0,c=rgb,alpha=time_memberships[t])
+            
+            ax.set_rmax(160)
+            ax.set_rmin(0)
+            ax.grid(True)
+            ax.set_yticklabels([])
+        
+            figure.patch.set_facecolor('w')
+            figure.gca().set_axis_bgcolor('w')
+            figure.set_size_inches(14, 10)
+            
+            figure.savefig("/Users/gcerutti/Desktop/2Dt_SignalMaps/"+data_name.capitalize()+"/Nuclei/"+data_name+"_2dt_"+str(100*d_time)+".jpg",facecolor=figure.get_facecolor(), edgecolor='none')
+            
+                
+
+        if map_3d:
+             
+            X,Y = R*np.cos(T),R*np.sin(T)
+            Z = deepcopy(altitude_map)
+            
+            from openalea.mesh.property_topomesh_creation import triangle_topomesh
+            from openalea.mesh import TriangularMesh
+            
+            mesh_points = np.transpose([np.concatenate(X.transpose()),np.concatenate(Y.transpose()),1.5*np.concatenate(Z.transpose())])
+            mesh_points = mesh_points[T.shape[0]-1:]
+            mesh_points = array_dict(dict(zip(range(len(mesh_points)),mesh_points)))
+            
+            mesh_point_data = np.concatenate(epidermis_map.transpose())[T.shape[0]-1:]
+            mesh_point_data = array_dict(dict(zip(range(len(mesh_points)),mesh_point_data)))
+            
+            mesh_density = np.concatenate(epidermis_model_density.transpose())[T.shape[0]-1:]
+            mesh_density = array_dict(dict(zip(range(len(mesh_points)),mesh_density)))
+            
+            mesh_triangles = [[0,i+1,(i+1)%T.shape[0]+1] for i in xrange(T.shape[0])]
+            for r in xrange(R.shape[1]-2):
+                mesh_triangles += [[r*T.shape[0] + i+1,r*T.shape[0] + (i+1)%T.shape[0]+1, (r+1)*T.shape[0] + i+1] for i in xrange(T.shape[0])]
+                mesh_triangles += [[r*T.shape[0] + (i+1)%T.shape[0]+1, (r+1)*T.shape[0] + i+1, (r+1)*T.shape[0] + (i+1)%T.shape[0]+1] for i in xrange(T.shape[0])]
+            
+            mesh_triangle_density = mesh_density.values(mesh_triangles).max(axis=1)
+            mesh_triangles = np.array(mesh_triangles)[mesh_triangle_density>0.5]
+            mesh_triangles = array_dict(dict(zip(range(len(mesh_triangles)),mesh_triangles)))
+            
+            #world.clear()
+            
+            # for density in list(np.linspace(0.3,0.6,7)):
+            
+
+            #     mesh_triangle_density = mesh_density.values(mesh_triangles).mean(axis=1)
+            #     mesh_density_triangles = np.array(mesh_triangles)[mesh_triangle_density>density]
+                
+            #     mesh_density_triangles = dict(zip(range(len(mesh_density_triangles)),mesh_density_triangles))
+                
+            #     #map_topomesh = triangle_topomesh(mesh_triangles,mesh_points)
+            #     map_mesh = TriangularMesh()
+            #     map_mesh.points = mesh_points
+            #     map_mesh.point_data = mesh_point_data
+            #     map_mesh.triangles = mesh_density_triangles
+            #     world.add(map_mesh,'map_'+str(density),alpha=density-0.09,intensity_range=data_ranges[data_name],colormap=data_colormaps[data_name],display_colorbar=density==0.3)
+            
+            map_mesh = TriangularMesh()
+            map_mesh.points = mesh_points
+            map_mesh.point_data = mesh_point_data
+            map_mesh.triangles = mesh_triangles
+            world.add(map_mesh,'map',intensity_range=data_ranges[data_name],colormap=data_colormaps[data_name])
+            
+            viewer.save_screenshot("/Users/gcerutti/Desktop/2Dt_SignalMaps/"+data_name.capitalize()+"/3D_Atlas/"+data_name+"_3dt_"+str(100*d_time)+".jpg")
+            
+            raw_input()
+            
+            # import mpl_toolkits.mplot3d.axes3d
+            # reload(mpl_toolkits.mplot3d.axes3d)
+            
+            # import mpl_toolkits.mplot3d
+            # reload(mpl_toolkits.mplot3d)
+            
+            # from mpl_toolkits.mplot3d import Axes3D 
+            # from matplotlib.colors import LightSource, Normalize
+            # from matplotlib import cm
+            
+            # cylindrical_figure = plt.figure(1)
+            # cylindrical_figure.clf()
+            
+            # ax = cylindrical_figure.add_subplot(111, projection='3d') 
+            
+            # #ls = LightSource(180, 50)
+            # mpl_colormap = cm.ScalarMappable(norm=Normalize(vmin=data_ranges[data_name][0], vmax=data_ranges[data_name][1]),cmap=cm.cmap_d[data_colormaps[data_name]])
+            # rgb = mpl_colormap.to_rgba(epidermis_map)
+            # #rgb = ls.shade(epidermis_map, cmap=cm.cmap_d[data_colormaps[data_name]], vert_exag=-10, blend_mode='overlay', fraction=0.1, vmin=data_ranges[data_name][0], vmax=data_ranges[data_name][1])
+            # rgb[...,3] = np.minimum(epidermis_model_density,1.0)
+            # #rgb[...,3] = (epidermis_model_density>0.5).astype(float)
+            
+            # ax.plot_surface(X, Y, Z, rstride=1, cstride=1, facecolors=rgb, linewidth=0, antialiased=False, shade=False)
+            # #ax.contour(X,Y,epidermis_model_density,[0.5],offset=np.mean(data_ranges['altitude']),colors=['k'],linewidths=[5])
+            
+            # eq_range = data_ranges['altitude'][1] - data_ranges['altitude'][0]
+            
+            # ax.set_axis_off()
+            # ax.set_xlim3d(-2*eq_range,2*eq_range)
+            # ax.set_ylim3d(-2*eq_range,2*eq_range)
+            # ax.set_zlim3d(data_ranges['altitude'][0]-0.5*eq_range, data_ranges['altitude'][1]+0.5*eq_range)
+            # ax.axis('off')
+            
+            # ax.view_init(elev=40., azim=-135.)            
+    
+            # cylindrical_figure.set_size_inches(10.6, 10)
+            # cylindrical_figure.savefig("/Users/gcerutti/Desktop/2Dt_SignalMaps/"+data_name.capitalize()+"/3D_Atlas/"+data_name+"_3dt_"+str(100*d_time)+".jpg")
+        
+        plt.show(block=False)
+        
     # dome_radius = reference_model.parameters['dome_radius']
     # r_max = 160.
     
@@ -359,14 +764,7 @@ for d_time in developmental_times:
     # plt.show(block=False)
     
     #epidermis_model_density = np.array([[[ reference_model.shape_model_density_function()(e_x[i,j,np.newaxis][:,np.newaxis,np.newaxis]+reference_dome_apex[0],e_y[i,j,np.newaxis][np.newaxis,:,np.newaxis]+reference_dome_apex[1],e_z[i,j,np.newaxis][np.newaxis,np.newaxis,:]+reference_dome_apex[2]-(20.*(k-3)))[0,0,0] for k in np.arange(0,6)] for j in xrange(e_x.shape[1])] for i in xrange(e_x.shape[0])]).max(axis=2)
-    
-    figure = plt.figure(0)
-    figure.clf()
-    draw_signal_map(figure,epidermis_nuclei_ratio,T,R,epidermis_model_density,colormap='viridis', n_levels=0, ratio_min=0.0, ratio_max=1.0)
-    plt.show(block=False)
-    
-    figure.savefig("/Users/gcerutti/Desktop/2Dt_SignalMaps/map_2dt_"+str(100*d_time)+".jpg")
-    
+
     
 
 

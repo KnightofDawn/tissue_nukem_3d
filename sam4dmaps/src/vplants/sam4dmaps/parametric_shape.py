@@ -34,6 +34,7 @@ class ParametricShapeModel:
             parameters_to_optimize = self.parameters.keys()
 
         initial_energy = energy(self.parameters,self.shape_model_density_function())
+        # initial_energy += (initial_energy/100.)*temperature
         initial_energy += 20000.*temperature
 
         energy_variations = {}
@@ -54,11 +55,12 @@ class ParametricShapeModel:
 
         sorted_parameter_variations = np.array(energy_variations.keys())[np.argsort(-np.array(energy_variations.values()))]
         max_energy_variation = energy_variations[sorted_parameter_variations[0]]
+        print energy_variations
 
         if max_energy_variation>0:
             # for p in sorted_parameter_variations[:1]:
             # for p in sorted_parameter_variations[:2]:
-            for p in sorted_parameter_variations[:len(parameters_to_optimize)/2]:
+            for p in sorted_parameter_variations[:(len(parameters_to_optimize)+1)/2]:
             # for p in sorted_parameter_variations:
                 if '+' in p:
                     self.parameters[p[:-1]] += temperature*energy_variations[p]/max_energy_variation
