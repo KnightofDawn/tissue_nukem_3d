@@ -286,13 +286,14 @@ def meristem_model_density_function_quadric(model, density_k=1.0):
 
     assert 'dome_matrix' in model
     assert 'dome_center' in model
-    assert dome_matrix is not None
-    assert dome_center is not None
 
     dome_center = model['dome_center']
     primordia_centers = model['primordia_centers']
     primordia_radiuses = model['primordia_radiuses']
     dome_matrix = model['dome_matrix']
+
+    assert dome_matrix is not None
+    assert dome_center is not None
 
     def density_func(x, y, z):
 
