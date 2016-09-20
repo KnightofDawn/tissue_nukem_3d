@@ -227,6 +227,7 @@ def point_nuclei_density(nuclei_positions,points,cell_radius=5,k=1.0):
 
 
 def meristem_model_density_function(model, density_k=1.0):
+
     import numpy as np
     dome_center = model['dome_center']
     dome_radius = model['dome_radius']
@@ -238,45 +239,130 @@ def meristem_model_density_function(model, density_k=1.0):
     # R_primordium=1.0
 
     def density_func(x,y,z):
-        mahalanobis_matrix = np.einsum('...i,...j->...ij',dome_axes[0],dome_axes[0])/np.power(dome_scales[0],2.) + np.einsum('...i,...j->...ij',dome_axes[1],dome_axes[1])/np.power(dome_scales[1],2.) + np.einsum('...i,...j->...ij',dome_axes[2],dome_axes[2])/np.power(dome_scales[2],2.)
-        
+        mahalanobis_matrix = np.einsum('...i,...j->...ij',dome_axes[0],dome_axes[0])/np.power(dome_scales[0],2.) \
+                             + np.einsum('...i,...j->...ij',dome_axes[1],dome_axes[1])/np.power(dome_scales[1],2.) \
+                             + np.einsum('...i,...j->...ij',dome_axes[2],dome_axes[2])/np.power(dome_scales[2],2.)
+
         dome_vectors = np.zeros((x.shape[0],y.shape[1],z.shape[2],3))
-        dome_vectors[:,:,:,0] = x-dome_center[0]
-        dome_vectors[:,:,:,1] = y-dome_center[1]
-        dome_vectors[:,:,:,2] = z-dome_center[2]
+        dome_vectors[:,:,:,0] = x - dome_center[0]
+        dome_vectors[:,:,:,1] = y - dome_center[1]
+        dome_vectors[:,:,:,2] = z - dome_center[2]
 
         # dome_distance = np.power(np.power(x-dome_center[0],2) + np.power(y-dome_center[1],2) + np.power(z-dome_center[2],2),0.5)
         # dome_distance = np.power(np.power(x-dome_center[0],2)/np.power(dome_scales[0],2) + np.power(y-dome_center[1],2)/np.power(dome_scales[1],2) + np.power(z-dome_center[2],2)/np.power(dome_scales[2],2),0.5)
-        dome_distance = np.power(np.einsum('...ij,...ij->...i',dome_vectors,np.einsum('...ij,...j->...i',mahalanobis_matrix,dome_vectors)),0.5)
+        dome_distance = np.power(np.einsum('...ij,...ij->...i', dome_vectors,np.einsum('...ij,...j->...i',mahalanobis_matrix,dome_vectors)),0.5)  # Mahalanobis distance
 
         max_radius = dome_radius
-        density = 1./2. * (1. - np.tanh(density_k*(dome_distance - (dome_radius+max_radius)/2.)))
-        for p in xrange(len(primordia_radiuses)):
-            primordium_distance = np.power(np.power(x-primordia_centers[p][0],2) + np.power(y-primordia_centers[p][1],2) + np.power(z-primordia_centers[p][2],2),0.5)
-            max_radius = primordia_radiuses[p]
-            density +=  1./2. * (1. - np.tanh(density_k*(primordium_distance - (primordia_radiuses[p]+max_radius)/2.)))
+        density = 0.5 * (1. - np.tanh(density_k * (dome_distance - (dome_radius+max_radius)/2.)))
+
+        for ip, center in enumerate(primordia_centers):
+            primordium_distance = \
+                np.power(np.power(x - center[0],2) +
+                         np.power(y - center[1],2) +
+                         np.power(z - center[2],2), 0.5)
+
+            max_radius = primordia_radiuses[ip]
+            density +=  \
+                0.5 * (1. - np.tanh(density_k * (primordium_distance -
+                                                 (primordia_radiuses[ip] + max_radius)/2.)))
+
         return density
+
     return density_func
 
 
+def meristem_model_density_function_quadric(model, density_k=1.0):
+    """
+
+    Args:
+        model: structural model of the meristem (must contain a non-null 'dome_matrix' key').
+        density_k: sharpness coefficient of the density function (default is 1).
+
+    Returns: density function used to define the implicit surface describing the meristem
+
+    """
+
+    import numpy as np
+
+    assert 'dome_matrix' in model
+    assert 'dome_center' in model
+    assert dome_matrix is not None
+    assert dome_center is not None
+
+    dome_center = model['dome_center']
+    primordia_centers = model['primordia_centers']
+    primordia_radiuses = model['primordia_radiuses']
+    dome_matrix = model['dome_matrix']
+
+    def density_func(x, y, z):
+
+        dome_vectors = np.zeros((x.shape[0], y.shape[1], z.shape[2], 4))
+        dome_vectors[:, :, :, 0] = x - dome_center[0]
+        dome_vectors[:, :, :, 1] = y - dome_center[1]
+        dome_vectors[:, :, :, 2] = z - dome_center[2]
+        dome_vectors[:, :, :, 3] = 1.  # homogeneous coordinates
+
+        # Difference of potential (not a distance in the mathematical sense)
+        # The potential is defined by the quadric's equation:
+        # V(X) = X^t M X = Ax² + By² + Cz² + Dxy + Exz + Fyz + Gx + Hy + Iz + J
+        dome_distance = np.einsum('...ij,...ij->...i', dome_vectors, np.einsum('...ij,...j->...i', dome_matrix, dome_vectors))
+
+        # Blending function (sigmoid function)
+        density = 0.5 * (1. - np.tanh(density_k * dome_distance))
+
+        # Evaluating the density resulting from the dome and the primordia
+        for ip, center in enumerate(primordia_centers):
+            primordium_distance = np.sqrt(np.power(x - center[0], 2) +
+                                           np.power(y - center[1], 2) +
+                                           np.power(z - center[2], 2))
+
+            max_radius = primordia_radiuses[ip]
+            density +=  0.5 * (1. - np.tanh(density_k * (primordium_distance - 0.5 * (primordia_radiuses[ip] + max_radius))))
+
+        return density
+
+    return density_func
+
 def meristem_model_topomesh(model, grid_resolution=None, density_k=0.33, smoothing=True, topological_optimization=False):
+
     from openalea.mesh.utils.implicit_surfaces import implicit_surface_topomesh
     from openalea.mesh.property_topomesh_optimization import property_topomesh_vertices_deformation, property_topomesh_edge_flip_optimization
 
     if grid_resolution is None:
+
         grid_resolution = np.array([2,2,2])
 
-    primordia_centers = model['primordia_centers']
-    primordia_radiuses = model['primordia_radiuses']
-    dome_radius = model['dome_radius']
+    if 'bounding_box' not in model or model['bounding_box'] is None:
 
-    bounding_box = np.transpose([np.floor(primordia_centers.min(axis=0) - primordia_radiuses.max() - dome_radius/2), np.ceil(primordia_centers.max(axis=0) + primordia_radiuses.max() + dome_radius/2)]).astype(int)
-    # bounding_box[2,0] += dome_radius/2
-    # bounding_box[2,1] -= dome_radius/4
+        primordia_centers = model['primordia_centers']
+        primordia_radiuses = model['primordia_radiuses']
+        dome_radius = model['dome_radius']
+        dome_center = np.array(model['dome_center'])
+
+        bounding_box = \
+            np.transpose([np.floor(primordia_centers.min(axis=0) - primordia_radiuses.max() - dome_radius/2),
+            np.ceil(primordia_centers.max(axis=0) + primordia_radiuses.max() + dome_radius/2)]).astype(int)
+
+        # bounding_box[2,0] += dome_radius/2
+        # bounding_box[2,1] -= dome_radius/4
+
+    else:
+
+        bounding_box = model['bounding_box']
+
     x,y,z = np.ogrid[bounding_box[0,0]:bounding_box[0,1]:grid_resolution[0], bounding_box[1,0]:bounding_box[1,1]:grid_resolution[1], bounding_box[2,0]:bounding_box[2,1]:grid_resolution[2]]
-    grid_size = (x.shape[0],y.shape[1],z.shape[2])
+    grid_size = (x.shape[0], y.shape[1], z.shape[2])
 
-    model_density_field = meristem_model_density_function(model,density_k=density_k)(x,y,z)
+    if 'dome_matrix' in model and model['dome_matrix'] is not None:
+
+        # The dome surface is defined by a quadric
+        model_density_field = meristem_model_density_function_quadric(model,density_k=density_k)(x,y,z)
+
+    else:
+
+        # The dome surface is defined by an ellipsoid (old version)
+        model_density_field = meristem_model_density_function(model,density_k=density_k)(x,y,z)
+
     model_topomesh = implicit_surface_topomesh(model_density_field,grid_size,grid_resolution,iso=0.5,center=False)
 
     if smoothing or topological_optimization:
