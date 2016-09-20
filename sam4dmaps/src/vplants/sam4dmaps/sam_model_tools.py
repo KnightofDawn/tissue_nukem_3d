@@ -304,7 +304,7 @@ def meristem_model_density_function_quadric(model, density_k=1.0):
 
         # Difference of potential (not a distance in the mathematical sense)
         # The potential is defined by the quadric's equation:
-        # V(X) = X^t M X = Ax² + By² + Cz² + Dxy + Exz + Fyz + Gx + Hy + Iz + J
+        # V(X) = X^t M X = Ax^2 + By^2 + Cz^2 + Dxy + Exz + Fyz + Gx + Hy + Iz + J
         dome_distance = np.einsum('...ij,...ij->...i', dome_vectors, np.einsum('...ij,...j->...i', dome_matrix, dome_vectors))
 
         # Blending function (sigmoid function)
