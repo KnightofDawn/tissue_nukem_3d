@@ -7,6 +7,7 @@ from copy import deepcopy
 import pickle
 
 from openalea.draco_stem.draco.adjacency_complex_optimization import delaunay_tetrahedrization_topomesh, tetrahedrization_clean_surface
+from openalea.draco_stem.draco.dual_reconstruction import topomesh_triangle_split
 
 from openalea.cellcomplex.property_topomesh.property_topomesh_analysis import compute_topomesh_property, compute_topomesh_vertex_property_from_faces
 from openalea.cellcomplex.property_topomesh.property_topomesh_extraction import epidermis_topomesh
@@ -17,7 +18,62 @@ from openalea.cellcomplex.property_topomesh.property_topomesh_optimization impor
 from vplants.sam4dmaps.sam_model_tools import nuclei_density_function
 
 
-def nuclei_layer(nuclei_positions, size, resolution, return_topomesh=False, display=False):
+def nuclei_surface_topomesh(nuclei_topomesh, size, resolution, cell_radius=5.0, density_k=0.25):
+
+    nuclei_positions = nuclei_topomesh.wisp_property('barycenter',0)
+
+    from time import time
+    start_time = time()
+
+    size_offset = 0.25
+
+    grid_resolution = np.sign(resolution)*6.
+    #x,y,z = np.ogrid[0:size[0]*resolution[0]:grid_resolution[0],0:size[1]*resolution[1]:grid_resolution[1],0:size[2]*resolution[2]:grid_resolution[2]]
+    #grid_size = size
+    x,y,z = np.ogrid[-size_offset*size[0]*resolution[0]:(1+size_offset)*size[0]*resolution[0]:grid_resolution[0],-size_offset*size[1]*resolution[1]:(1+size_offset)*size[1]*resolution[1]:grid_resolution[1],-size_offset*size[2]*resolution[2]:(1+size_offset)*size[2]*resolution[2]:grid_resolution[2]]
+    grid_size = (1+2.*size_offset)*size
+
+    end_time = time()
+    print "--> Generating grid     [",end_time - start_time,"s]"
+
+    start_time = time()
+    nuclei_density = nuclei_density_function(nuclei_positions,cell_radius=cell_radius,k=density_k)(x,y,z)
+    end_time = time()
+    print "--> Computing density   [",end_time - start_time,"s]"
+
+    start_time = time()
+    surface_topomesh = implicit_surface_topomesh(nuclei_density,grid_size,resolution,iso=0.5,center=False)
+    surface_topomesh.update_wisp_property('barycenter',0,array_dict(surface_topomesh.wisp_property('barycenter',0).values() - size_offset*resolution*size,surface_topomesh.wisp_property('barycenter',0).keys()))
+    surface_topomesh = topomesh_triangle_split(surface_topomesh)
+    property_topomesh_vertices_deformation(surface_topomesh,iterations=20,omega_forces=dict(taubin_smoothing=0.65),sigma_deformation=2.0)
+    end_time = time()
+    print "--> Generating topomesh [",end_time - start_time,"s]"
+
+    start_time = time()
+    surface_points = surface_topomesh.wisp_property('barycenter',0).values()
+    surface_density, surface_potential = nuclei_density_function(nuclei_positions,cell_radius=cell_radius,k=density_k)(surface_points[:,0],surface_points[:,1],surface_points[:,2],return_potential=True)
+    surface_membership = np.transpose(surface_potential)/surface_density[:,np.newaxis]
+    end_time = time()
+    print "--> Computing surface membership [",end_time - start_time,"s]"
+
+    start_time = time()
+    surface_topomesh.update_wisp_property('cell',0,array_dict(np.array(list(nuclei_topomesh.wisps(0)))[np.argmax(surface_membership,axis=1)],list(surface_topomesh.wisps(0))))
+    for property_name in nuclei_topomesh.wisp_property_names(0):
+        if not property_name in ['barycenter']:
+        #if not property_name in []:
+            if nuclei_topomesh.wisp_property(property_name,0).values().ndim == 1:
+                print (surface_membership*nuclei_topomesh.wisp_property(property_name,0).values()[np.newaxis,:]).sum(axis=1).shape
+                surface_topomesh.update_wisp_property(property_name,0,array_dict((surface_membership*nuclei_topomesh.wisp_property(property_name,0).values()[np.newaxis,:]).sum(axis=1),list(surface_topomesh.wisps(0))))
+            elif nuclei_topomesh.wisp_property(property_name,0).values().ndim == 2:
+                surface_topomesh.update_wisp_property(property_name,0,array_dict((surface_membership[:,:,np.newaxis]*nuclei_topomesh.wisp_property(property_name,0).values()[np.newaxis,:]).sum(axis=1),list(surface_topomesh.wisps(0))))
+    end_time = time()
+    print "--> Updating properties [",end_time - start_time,"s]"
+
+    return surface_topomesh
+
+
+
+def nuclei_layer(nuclei_positions, size, resolution, maximal_distance=12., maximal_eccentricity=0.8, return_topomesh=False, display=False):
     positions = array_dict(nuclei_positions)
 
     if display:
@@ -51,7 +107,7 @@ def nuclei_layer(nuclei_positions, size, resolution, return_topomesh=False, disp
     delaunay_topomesh = deepcopy(triangulation_topomesh)
 
     # triangulation_topomesh = tetrahedrization_clean_surface(delaunay_topomesh,surface_cleaning_criteria=['surface','sliver'],surface_topomesh=surface_topomesh)
-    triangulation_topomesh = tetrahedrization_clean_surface(delaunay_topomesh,surface_cleaning_criteria=['surface','exterior','distance','sliver'],surface_topomesh=surface_topomesh,maximal_distance=12.,maximal_eccentricity=0.8)
+    triangulation_topomesh = tetrahedrization_clean_surface(delaunay_topomesh,surface_cleaning_criteria=['surface','distance','sliver'],surface_topomesh=surface_topomesh,maximal_distance=maximal_distance,maximal_eccentricity=maximal_eccentricity)
 
     # if display:
     #     world.add(triangulation_topomesh,'triangulation')
