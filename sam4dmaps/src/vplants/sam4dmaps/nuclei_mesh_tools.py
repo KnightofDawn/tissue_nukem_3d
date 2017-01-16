@@ -10,7 +10,7 @@ from openalea.draco_stem.draco.adjacency_complex_optimization import delaunay_te
 from openalea.draco_stem.draco.dual_reconstruction import topomesh_triangle_split
 
 from openalea.cellcomplex.property_topomesh.property_topomesh_analysis import compute_topomesh_property, compute_topomesh_vertex_property_from_faces
-from openalea.cellcomplex.property_topomesh.property_topomesh_extraction import epidermis_topomesh
+from openalea.cellcomplex.property_topomesh.property_topomesh_extraction import epidermis_topomesh, topomesh_connected_components
 from openalea.cellcomplex.property_topomesh.utils.implicit_surfaces import implicit_surface_topomesh
 from openalea.cellcomplex.property_topomesh.property_topomesh_optimization import property_topomesh_vertices_deformation
 
@@ -18,7 +18,7 @@ from openalea.cellcomplex.property_topomesh.property_topomesh_optimization impor
 from vplants.sam4dmaps.sam_model_tools import nuclei_density_function
 
 
-def nuclei_surface_topomesh(nuclei_topomesh, size, resolution, cell_radius=5.0, density_k=0.25):
+def nuclei_surface_topomesh(nuclei_topomesh, size, resolution, cell_radius=5.0, subsampling=6., density_k=0.25):
 
     nuclei_positions = nuclei_topomesh.wisp_property('barycenter',0)
 
@@ -27,7 +27,7 @@ def nuclei_surface_topomesh(nuclei_topomesh, size, resolution, cell_radius=5.0, 
 
     size_offset = 0.25
 
-    grid_resolution = np.sign(resolution)*6.
+    grid_resolution = np.sign(resolution)*subsampling
     #x,y,z = np.ogrid[0:size[0]*resolution[0]:grid_resolution[0],0:size[1]*resolution[1]:grid_resolution[1],0:size[2]*resolution[2]:grid_resolution[2]]
     #grid_size = size
     x,y,z = np.ogrid[-size_offset*size[0]*resolution[0]:(1+size_offset)*size[0]*resolution[0]:grid_resolution[0],-size_offset*size[1]*resolution[1]:(1+size_offset)*size[1]*resolution[1]:grid_resolution[1],-size_offset*size[2]*resolution[2]:(1+size_offset)*size[2]*resolution[2]:grid_resolution[2]]
@@ -57,12 +57,17 @@ def nuclei_surface_topomesh(nuclei_topomesh, size, resolution, cell_radius=5.0, 
     print "--> Computing surface membership [",end_time - start_time,"s]"
 
     start_time = time()
-    surface_topomesh.update_wisp_property('cell',0,array_dict(np.array(list(nuclei_topomesh.wisps(0)))[np.argmax(surface_membership,axis=1)],list(surface_topomesh.wisps(0))))
+    # print np.argmax(surface_membership,axis=1).shape
+    # print np.argmax(surface_membership,axis=0).shape
+    # print nuclei_topomesh.nb_wisps(0)
+    # print surface_topomesh.nb_wisps(0)
+
+    surface_topomesh.update_wisp_property('cell',0,array_dict(np.array(nuclei_positions.keys())[np.argmax(surface_membership,axis=1)],list(surface_topomesh.wisps(0))))
     for property_name in nuclei_topomesh.wisp_property_names(0):
         if not property_name in ['barycenter']:
         #if not property_name in []:
             if nuclei_topomesh.wisp_property(property_name,0).values().ndim == 1:
-                print (surface_membership*nuclei_topomesh.wisp_property(property_name,0).values()[np.newaxis,:]).sum(axis=1).shape
+                # print (surface_membership*nuclei_topomesh.wisp_property(property_name,0).values()[np.newaxis,:]).sum(axis=1).shape
                 surface_topomesh.update_wisp_property(property_name,0,array_dict((surface_membership*nuclei_topomesh.wisp_property(property_name,0).values()[np.newaxis,:]).sum(axis=1),list(surface_topomesh.wisps(0))))
             elif nuclei_topomesh.wisp_property(property_name,0).values().ndim == 2:
                 surface_topomesh.update_wisp_property(property_name,0,array_dict((surface_membership[:,:,np.newaxis]*nuclei_topomesh.wisp_property(property_name,0).values()[np.newaxis,:]).sum(axis=1),list(surface_topomesh.wisps(0))))
@@ -82,7 +87,7 @@ def nuclei_layer(nuclei_positions, size, resolution, maximal_distance=12., maxim
 
 
     #grid_resolution = resolution*[12,12,4]
-    grid_resolution = np.sign(resolution)*[8.,8.,8.]
+    grid_resolution = np.sign(resolution)*[4.,4.,4.]
     #x,y,z = np.ogrid[0:size[0]*resolution[0]:grid_resolution[0],0:size[1]*resolution[1]:grid_resolution[1],0:size[2]*resolution[2]:grid_resolution[2]]
     #grid_size = size
     x,y,z = np.ogrid[-0.5*size[0]*resolution[0]:1.5*size[0]*resolution[0]:grid_resolution[0],-0.5*size[1]*resolution[1]:1.5*size[1]*resolution[1]:grid_resolution[1],-0.5*size[2]*resolution[2]:1.5*size[2]*resolution[2]:grid_resolution[2]]
@@ -92,7 +97,7 @@ def nuclei_layer(nuclei_positions, size, resolution, maximal_distance=12., maxim
     #nuclei_potential = np.transpose(nuclei_potential,(1,2,3,0))
     #nuclei_density = np.sum(nuclei_potential,axis=3)
 
-    nuclei_density = nuclei_density_function(positions,cell_radius=8,k=1.0)(x,y,z) 
+    nuclei_density = nuclei_density_function(positions,cell_radius=5,k=1.0)(x,y,z) 
 
     surface_topomesh = implicit_surface_topomesh(nuclei_density,grid_size,resolution,iso=0.5,center=False)
     surface_topomesh.update_wisp_property('barycenter',0,array_dict(surface_topomesh.wisp_property('barycenter',0).values() - 0.5*resolution*size,surface_topomesh.wisp_property('barycenter',0).keys()))
@@ -108,6 +113,7 @@ def nuclei_layer(nuclei_positions, size, resolution, maximal_distance=12., maxim
 
     # triangulation_topomesh = tetrahedrization_clean_surface(delaunay_topomesh,surface_cleaning_criteria=['surface','sliver'],surface_topomesh=surface_topomesh)
     triangulation_topomesh = tetrahedrization_clean_surface(delaunay_topomesh,surface_cleaning_criteria=['surface','distance','sliver'],surface_topomesh=surface_topomesh,maximal_distance=maximal_distance,maximal_eccentricity=maximal_eccentricity)
+    #triangulation_topomesh = tetrahedrization_clean_surface(delaunay_topomesh,surface_cleaning_criteria=['surface','distance','sliver'],surface_topomesh=surface_topomesh,maximal_distance=maximal_distance,maximal_eccentricity=maximal_eccentricity)
 
     # if display:
     #     world.add(triangulation_topomesh,'triangulation')
@@ -146,6 +152,8 @@ def nuclei_layer(nuclei_positions, size, resolution, maximal_distance=12., maxim
     vertices_to_remove = np.array(list(L1_triangulation_topomesh.wisps(0)))[np.array([L1_triangulation_topomesh.nb_regions(0,v)==0 for v in L1_triangulation_topomesh.wisps(0)])]
     for v in vertices_to_remove:
         L1_triangulation_topomesh.remove_wisp(0,v)
+
+    L1_triangulation_topomesh = topomesh_connected_components(L1_triangulation_topomesh)[0]
 
     cell_layer = array_dict(np.zeros_like(positions.keys()),positions.keys())
     for c in L1_triangulation_topomesh.wisps(0):

@@ -79,7 +79,7 @@ def extract_clv3_circle(positions, clv3_values, clv3_threshold=0.4, map_figure=N
     return clv3_center, clv3_radius
 
 
-def compute_circle_signal(positions, center, radius, signal_values):
+def compute_circle_signal(positions, center, radius, signal_values, cell_radius=5.0, density_k=0.33):
     X = positions[:,0]
     Y = positions[:,1]
     projected_positions = dict(zip(range(len(positions)),np.transpose([X,Y,np.zeros_like(X)])))
@@ -88,9 +88,6 @@ def compute_circle_signal(positions, center, radius, signal_values):
     circle_x = center[0] + radius*np.cos(np.pi*circle_thetas/180.)
     circle_y = center[1] + radius*np.sin(np.pi*circle_thetas/180.)
     circle_z = np.zeros_like(circle_x)
-            
-    cell_radius=5.0
-    density_k = 0.15
             
     circle_potential = np.array([nuclei_density_function(dict([(p,projected_positions[p])]),cell_radius=cell_radius,k=density_k)(circle_x,circle_y,circle_z) for p in xrange(len(positions))])
     circle_potential = np.transpose(circle_potential)
@@ -102,18 +99,15 @@ def compute_circle_signal(positions, center, radius, signal_values):
     return circle_signal, circle_thetas
 
 
-def compute_radial_signal(positions, center, theta, r_max, signal_values):
+def compute_radial_signal(positions, center, theta, r_max, signal_values, resolution=0.5, cell_radius=5.0, density_k=0.33):
     X = positions[:,0]
     Y = positions[:,1]
     projected_positions = dict(zip(range(len(positions)),np.transpose([X,Y,np.zeros_like(X)])))
 
-    radial_distances = np.linspace(0,r_max,2*r_max+1)
+    radial_distances = np.linspace(0,r_max,r_max/resolution+1)
     radial_x = center[0] + radial_distances*np.cos(np.pi*theta/180.)
     radial_y = center[1] + radial_distances*np.sin(np.pi*theta/180.)
     radial_z = np.zeros_like(radial_x)
-            
-    cell_radius=5.0
-    density_k = 0.15
     
     radial_potential = np.array([nuclei_density_function(dict([(p,projected_positions[p])]),cell_radius=cell_radius,k=density_k)(radial_x,radial_y,radial_z) for p in xrange(len(positions))])
     radial_potential = np.transpose(radial_potential)
@@ -123,7 +117,29 @@ def compute_radial_signal(positions, center, theta, r_max, signal_values):
     radial_signal = np.sum(radial_membership*signal_values[np.newaxis,:],axis=1)
 
     return radial_signal, radial_distances
-    
+
+
+def compute_local_2d_signal(positions, points, signal_values, cell_radius=5.0, density_k=0.33):
+    X = positions[:,0]
+    Y = positions[:,1]
+    projected_positions = dict(zip(range(len(positions)),np.transpose([X,Y,np.zeros_like(X)])))
+
+    x = points[...,0]
+    y = points[...,1]
+    z = 0*points[...,0]
+
+    potential = np.array([nuclei_density_function(dict([(p,projected_positions[p])]),cell_radius=cell_radius,k=density_k)(x,y,z) for p in xrange(len(positions))])
+    if potential.ndim == 2:
+        potential = np.transpose(potential)
+    elif potential.ndim == 3:
+        potential = np.transpose(potential,(1,2,0))
+    density = np.sum(potential,axis=-1)
+    membership = potential/density[...,np.newaxis]
+
+    signal = np.sum(membership*signal_values[np.newaxis,:],axis=-1)
+
+    return signal
+
 
 
 def aligned_circle_signal(circle_signal, circle_thetas):

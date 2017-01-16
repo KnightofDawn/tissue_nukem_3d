@@ -65,12 +65,14 @@ def phyllotaxis_based_parametric_meristem_model(parameters):
 
     
     initial_distance = dome_radius*np.sin(4*initium_angle/3)
-    zero_distance  = dome_radius*0.28
+    #zero_distance  = dome_radius*0.28
+    zero_distance  = dome_radius*0.753
     growth_factor = 0.01
     initial_time = np.log((1/growth_factor)*zero_distance/initial_distance)
     #plastochrone_distance = dome_radius*np.sin(4.*initium_angle/3.)
     #plastochrone_distance = 1.15*initial_distance
-    plastochrone_time = 0.09/growth_factor
+    #plastochrone_time = 0.09/growth_factor
+    plastochrone_time = 0.108/growth_factor
     max_time = (parameters['n_primordia']+1)*plastochrone_time
 
     primordia_times = parameters['developmental_time'] + np.arange(parameters['n_primordia'])*plastochrone_time
@@ -86,9 +88,12 @@ def phyllotaxis_based_parametric_meristem_model(parameters):
     primordia_angles = golden_angle*(np.arange(parameters['n_primordia']) + 1 - primordium_offset)
     primordia_times = primordia_times - primordium_offset*plastochrone_time
 
+    #primordia_distances = initial_distance*np.exp(growth_factor*(primordia_times-initial_time)) 
     primordia_distances = initial_distance*np.exp(growth_factor*(primordia_times-initial_time)) 
-    primordia_radiuses = (0.26*primordia_distances/dome_radius + 0.15)*dome_radius
+    primordia_radiuses = (0.1333*np.exp(1.126*primordia_distances/dome_radius))*dome_radius
+    #primordia_radiuses = (0.26*primordia_distances/dome_radius + 0.15)*dome_radius
     primordia_heights = (-0.08*np.power(primordia_distances/dome_radius - 0.2,2)-0.53)*dome_radius
+
 
     primordia_centers = dome_apex[np.newaxis,:] + primordia_distances[:,np.newaxis]*np.transpose([np.cos(primordia_angles),np.sin(primordia_angles),np.zeros_like(primordia_angles)]) 
     primordia_centers += np.transpose([np.zeros_like(primordia_heights),np.zeros_like(primordia_heights),primordia_heights])
@@ -177,15 +182,23 @@ def nuclei_density_function(nuclei_positions,cell_radius,k=0.1):
 
         points = np.array(nuclei_positions.values())
 
-        if len((x+y+z).shape) == 1:
+
+        if len((x+y+z).shape) == 0:
+            cell_distances = np.power(np.power(x[np.newaxis] - points[:,0],2) +  np.power(y[np.newaxis] - points[:,1],2) + np.power(z[np.newaxis] - points[:,2],2),0.5)
+        elif len((x+y+z).shape) == 1:
             cell_distances = np.power(np.power(x[np.newaxis] - points[:,0,np.newaxis],2) +  np.power(y[np.newaxis] - points[:,1,np.newaxis],2) + np.power(z[np.newaxis] - points[:,2,np.newaxis],2),0.5)
         elif len((x+y+z).shape) == 2:
             cell_distances = np.power(np.power(x[np.newaxis] - points[:,0,np.newaxis,np.newaxis],2) +  np.power(y[np.newaxis] - points[:,1,np.newaxis,np.newaxis],2) + np.power(z[np.newaxis] - points[:,2,np.newaxis,np.newaxis],2),0.5)
         elif len((x+y+z).shape) == 3:
             cell_distances = np.power(np.power(x[np.newaxis] - points[:,0,np.newaxis,np.newaxis,np.newaxis],2) +  np.power(y[np.newaxis] - points[:,1,np.newaxis,np.newaxis,np.newaxis],2) + np.power(z[np.newaxis] - points[:,2,np.newaxis,np.newaxis,np.newaxis],2),0.5)
 
+
         density_potential = 1./2. * (1. - np.tanh(k*(cell_distances - (cell_radius+max_radius)/2.)))
-        density = density_potential.sum(axis=0)
+
+        if len(density_potential.shape)==1 and density_potential.shape[0]==1:
+            density = density_potential.sum()
+        else:
+            density = density_potential.sum(axis=0)
 
         # density = np.zeros_like(x+y+z)
         # for p in nuclei_positions.keys():
@@ -325,6 +338,25 @@ def meristem_model_density_function_quadric(model, density_k=1.0):
         return density
 
     return density_func
+
+
+def meristem_model_2d_density_function(model,k=0.5):
+    dome_center = model['dome_center'][:2]
+    dome_radius = (np.sqrt(3)/2.)*model['dome_radius']
+    primordia_centers = model['primordia_centers'][:,:2]
+    primordia_radiuses = model['primordia_radiuses']
+
+    def density_func(x,y):
+        dome_distance = np.power(np.power(x-dome_center[0],2) + np.power(y-dome_center[1],2),0.5)
+        density = 1./2. * (1. - np.tanh(k*(dome_distance - dome_radius)))
+        #density = np.zeros_like(dome_distance)
+        for p in xrange(len(primordia_radiuses)):
+            primordium_distance = np.power(np.power(x-primordia_centers[p][0],2) + np.power(y-primordia_centers[p][1],2),0.5)
+            density +=  0.5* (1. - np.tanh(k*(primordium_distance - primordia_radiuses[p])))
+        #density = np.minimum(density,1)
+        return density
+    return density_func
+
 
 def meristem_model_topomesh(model, grid_resolution=None, density_k=0.33, smoothing=True, topological_optimization=False):
 
