@@ -82,10 +82,21 @@ def detect_peaks_3D_scale_space(scale_space_images,sigmas,threshold=None,resolut
         threshold = np.percentile(scale_space_images,90)
     points = np.array(np.where(scale_space_images>threshold)).transpose()
 
-    print points.shape[0]," possible peaks"
+    print points.shape[0]," possible peaks (thresholding)"
+
+    x_left_max = np.concatenate([scale_space_images[:,:-1,:,:]-scale_space_images[:,1:,:,:],np.zeros_like(scale_space_images)[:,0:1,:,:]],axis=1)>0
+    y_left_max = np.concatenate([scale_space_images[:,:,:-1,:]-scale_space_images[:,:,1:,:],np.zeros_like(scale_space_images)[:,:,0:1,:]],axis=2)>0
+    z_left_max = np.concatenate([scale_space_images[:,:,:,:-1]-scale_space_images[:,:,:,1:],np.zeros_like(scale_space_images)[:,:,:,0:1]],axis=3)>0
+    x_right_max = np.concatenate([np.zeros_like(scale_space_images)[:,0:1,:,:],scale_space_images[:,1:,:,:]-scale_space_images[:,:-1,:,:]],axis=1)>0
+    y_right_max = np.concatenate([np.zeros_like(scale_space_images)[:,:,0:1,:],scale_space_images[:,:,1:,:]-scale_space_images[:,:,:-1,:]],axis=2)>0
+    z_right_max = np.concatenate([np.zeros_like(scale_space_images)[:,:,:,0:1],scale_space_images[:,:,:,1:]-scale_space_images[:,:,:,:-1]],axis=3)>0
+    local_max = x_left_max & x_right_max & y_left_max & y_right_max & z_left_max & z_right_max
+
+    points = np.array(np.where((scale_space_images>threshold) & local_max)).transpose()
+    print points.shape[0]," possible peaks (local max)"
 
     for p,point in enumerate(points):
-        if p%100000 == 0:
+        if p%10000 == 0:
             print p,"/",points.shape[0]
         if scale_spatial_local_max(scale_space_images,point[0],point[1],point[2],point[3],neighborhood=sigmas[point[0]],resolution=resolution):
             peaks.append(point)
