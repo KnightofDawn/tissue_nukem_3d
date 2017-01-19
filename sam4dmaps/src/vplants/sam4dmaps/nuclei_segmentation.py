@@ -190,7 +190,7 @@ def active_regions_energy_gradient_descent(initial_regions_img, reference_img, o
     return regions_img
 
 
-def nuclei_active_region_segmentation(reference_img, positions, omega_energies=dict(intensity=1.0,gradient=1.5,smoothness=10000.0), intensity_min=20000., iterations=10, display=False):
+def nuclei_active_region_segmentation(input_img, positions, omega_energies=dict(intensity=1.0,gradient=1.5,smoothness=10000.0), intensity_min=20000., iterations=10, display=False):
     """
     3D extension of the multiple region extension of the binary level set implementation
     """
@@ -198,8 +198,12 @@ def nuclei_active_region_segmentation(reference_img, positions, omega_energies=d
     segmentation_start_time = time()
     print "--> Active region segmentation (",len(positions)," regions )"
 
+    from copy import deepcopy
+
+    reference_img = deepcopy(input_img)
+
     size = np.array(reference_img.shape)
-    resolution = np.array(reference_img.resolution) 
+    resolution = np.array(reference_img.resolution)
 
     if display:
         from openalea.core.world import World
