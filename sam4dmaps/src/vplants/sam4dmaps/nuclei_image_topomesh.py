@@ -48,14 +48,14 @@ def nuclei_image_topomesh(filename, dirname=None, reference_name='TagBFP', signa
 
         if subsampling>1:
             #nuclei_img = nd.gaussian_filter(nuclei_img,sigma=subsampling/4.)[::subsampling,::subsampling,::subsampling]
-            nuclei_img = nd.gaussian_filter1d(nd.gaussian_filter1d(nuclei_img,sigma=subsampling/4.,axis=0),sigma=subsampling/4.,axis=1)[::subsampling,::subsampling,:]
+            nuclei_img = nd.gaussian_filter1d(nd.gaussian_filter1d(nuclei_img,sigma=subsampling/8.,axis=0),sigma=subsampling/8.,axis=1)[::subsampling,::subsampling,:]
             nuclei_img = SpatialImage(nuclei_img,resolution=(subsampling*reference_img.resolution[0],subsampling*reference_img.resolution[1],reference_img.resolution[2]))
             image_coords = tuple(np.transpose((positions.values()/(microscope_orientation*np.array(nuclei_img.resolution))).astype(int)))
         
             print "Subsampled image : ",nuclei_img.shape,nuclei_img.resolution
 
         intensity_min = np.percentile(nuclei_img[image_coords],0)
-        segmented_img = nuclei_active_region_segmentation(nuclei_img, positions, display=False, omega_energies=dict(intensity=2.0,gradient=1.5,smoothness=10000.0), intensity_min=intensity_min)
+        segmented_img = nuclei_active_region_segmentation(nuclei_img, positions, display=False, omega_energies=dict(intensity=subsampling,gradient=1.5,smoothness=10000.0*np.power(subsampling,1.5)), intensity_min=intensity_min)
         positions = nuclei_positions_from_segmented_image(segmented_img)
 
         segmentation_file = dirname+"/"+filename+"/"+filename+"_nuclei_seg.inr.gz"
