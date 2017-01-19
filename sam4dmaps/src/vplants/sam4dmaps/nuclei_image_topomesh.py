@@ -5,10 +5,12 @@ from vplants.sam4dmaps.nuclei_detection import detect_nuclei, compute_fluorescen
 from vplants.sam4dmaps.nuclei_segmentation import nuclei_active_region_segmentation, nuclei_positions_from_segmented_image
 
 from vplants.sam4dmaps.nuclei_mesh_tools import nuclei_layer, nuclei_curvature 
+from vplants.sam4dmaps.sam_model_tools import nuclei_density_function
         
 from openalea.container import array_dict
 from openalea.mesh.property_topomesh_creation import vertex_topomesh
-
+from openalea.mesh.property_topomesh_extraction import epidermis_topomesh, topomesh_connected_components, cut_surface_topomesh
+from openalea.mesh.utils.implicit_surfaces import implicit_surface_topomesh
 from openalea.mesh.property_topomesh_io import save_ply_property_topomesh, read_ply_property_topomesh
 from openalea.mesh.utils.pandas_tools import topomesh_to_dataframe
 
@@ -84,7 +86,31 @@ def nuclei_image_topomesh(filename, dirname=None, reference_name='TagBFP', signa
 
     surface_topomesh = None
     if not (topomesh.has_wisp_property('layer',0)):
-        cell_layer, triangulation_topomesh, surface_topomesh = nuclei_layer(positions,size,resolution,maximal_distance=10,return_topomesh=True,display=False)
+        # cell_layer, triangulation_topomesh, surface_topomesh = nuclei_layer(positions,size,resolution,maximal_distance=10,return_topomesh=True,display=False)
+        # topomesh.update_wisp_property('layer',0,cell_layer)
+        grid_resolution = np.sign(resolution)*[4.,4.,4.]
+        x,y,z = np.ogrid[-0.5*size[0]*resolution[0]:1.5*size[0]*resolution[0]:grid_resolution[0],-0.5*size[1]*resolution[1]:1.5*size[1]*resolution[1]:grid_resolution[1],-0.5*size[2]*resolution[2]:1.5*size[2]*resolution[2]:grid_resolution[2]]
+        grid_size = 2*size
+ 
+        nuclei_density = nuclei_density_function(positions,cell_radius=5,k=1.0)(x,y,z) 
+
+        surface_topomesh = implicit_surface_topomesh(nuclei_density,grid_size,resolution,iso=0.5,center=False)
+        surface_topomesh.update_wisp_property('barycenter',0,array_dict(surface_topomesh.wisp_property('barycenter',0).values() - 0.5*resolution*size,surface_topomesh.wisp_property('barycenter',0).keys()))
+
+        top_surface_topomesh = cut_surface_topomesh(surface_topomesh,z_cut=0.8*size[2]*resolution[2])
+        top_surface_topomesh = topomesh_connected_components(top_surface_topomesh)[0]
+
+        world.add(top_surface_topomesh,'top_surface')
+        
+        surface_points = top_surface_topomesh.wisp_property('barycenter',0).values(list(top_surface_topomesh.wisps(0)))
+        surface_potential = np.array([nuclei_density_function(dict([(p,positions[p])]),cell_radius=5,k=1.0)(surface_points[:,0],surface_points[:,1],surface_points[:,2]) for p in positions.keys()])
+        surface_cells = np.array(positions.keys())[np.argmax(surface_potential,axis=0)]
+        
+        L1_cells = np.unique(surface_cells)
+        
+        cell_layer = array_dict(np.zeros_like(positions.keys()),positions.keys())
+        for c in L1_cells:
+            cell_layer[c] = 1
         topomesh.update_wisp_property('layer',0,cell_layer)
 
         save_ply_property_topomesh(topomesh,topomesh_file,properties_to_save=dict([(0,signal_names+['layer']),(1,[]),(2,[]),(3,[])]),color_faces=False) 
