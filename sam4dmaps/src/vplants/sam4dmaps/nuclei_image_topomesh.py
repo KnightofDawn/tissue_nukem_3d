@@ -82,8 +82,6 @@ def nuclei_image_topomesh(filename, dirname=None, reference_name='TagBFP', signa
         
         save_ply_property_topomesh(topomesh,topomesh_file,properties_to_save=dict([(0,signal_names),(1,[]),(2,[]),(3,[])]),color_faces=False)
 
-        raw_input()
-
     surface_topomesh = None
     if not (topomesh.has_wisp_property('layer',0)):
         cell_layer, triangulation_topomesh, surface_topomesh = nuclei_layer(positions,size,resolution,maximal_distance=10,return_topomesh=True,display=False)
