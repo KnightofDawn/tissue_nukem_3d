@@ -152,8 +152,8 @@ def compute_fluorescence_ratios(nuclei_img, signal_img, nuclei_points, nuclei_si
 
     resolution = np.array(nuclei_img.resolution)
 
-    filtered_nuclei_img = gaussian_filter(nuclei_img,sigma=resolution*nuclei_sigma,order=0)
-    filtered_signal_img = gaussian_filter(signal_img,sigma=resolution*nuclei_sigma,order=0)
+    filtered_nuclei_img = gaussian_filter(nuclei_img.astype(float),sigma=resolution*nuclei_sigma,order=0)
+    filtered_signal_img = gaussian_filter(signal_img.astype(float),sigma=resolution*nuclei_sigma,order=0)
 
     coords = np.array(np.array(nuclei_points.values())/resolution,int)
     print coords
