@@ -1,3 +1,0 @@
-[wralea]
-sam4dmaps = vplants.sam4dmaps_wralea
-

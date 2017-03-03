@@ -1,0 +1,51 @@
+{
+  ".gitignore": {}, 
+  "AUTHORS.rst": {
+    "doc": "5tBxFHw4oYIQ21XcA+feMs0fKWaEt8WFAv1R7yzE447mnT1aac2bOedYrqgFjrPEKvrRBKOsixqqkhCJHjMuCA=="
+  }, 
+  "CONTRIBUTING.rst": {}, 
+  "HISTORY.rst": {}, 
+  "LICENSE": {
+    "license": "21ExMhSzB2uXQuU1VoH7++nrb4u6TbesqGtJDpM39OLPWft9SJ2tJ956R6foYmkI9VuJay7SUrhFLPxxMEHLxg=="
+  }, 
+  "MANIFEST.in": {
+    "pysetup": "1FyTKjAmOPyPY+wrgNLWCTayScU99/wU8HDNfCq60bO5lNYxX0bI848EAU2MYpdgCMSGWcn4TXartht/bOyN7A=="
+  }, 
+  "README.rst": {
+    "doc": "z4PhNX7vuL3xVChQ1m2AB9Yg5AULVxXcg/SpIdNs6c5H0NE8XYXysP+DGNKHfuwvY7kxvUdBeoGlODJ6+SfaPg=="
+  }, 
+  "doc/_static/nonempty.txt": {}, 
+  "doc/authors.rst": {}, 
+  "doc/contributing.rst": {}, 
+  "doc/history.rst": {}, 
+  "doc/index.rst": {}, 
+  "doc/installation.rst": {}, 
+  "doc/readme.rst": {}, 
+  "doc/usage.rst": {}, 
+  "dvlpt_requirements.txt": {
+    "pysetup": "lCbGKPjPfZaLiwclMKKn7EdCraYOyhNIZcfBdXCFnX8YV/uOTypLRFYBm7uxfWtnSe62wAlYDv/2EzakafsQtw=="
+  }, 
+  "requirements.txt": {
+    "pysetup": "/5djJXLbrvuFk7LIgtfgYR8RnQrY5BEmOB4zEd0PrKeswR/8sQkzj4yKy7Zl3LAdRzYjPDhWiRkS1oMCG4FX7Q=="
+  }, 
+  "setup.cfg": {
+    "pysetup": "1iCSDvs9xY0GOgde2dHQdpu5siqLRSbSiVZr6vEMin886x1NKrTLw0f1AJuSUwPfsoXa1a1EfRsDFadXx3Qy8A=="
+  }, 
+  "setup.py": {
+    "pysetup.call": "2wHuP94SpWKZpqOzExkQGTxnhGPgBHK3qOdPn0Ncstj5FkZ7FBGGM/inqAXaI4QLKQtTNlOUYRGSkYUWAUcf1w==", 
+    "pysetup.kwds": "PHGLcTMg5p6Khxp0Mr2VcHpiZRK7/MUrEpkhKbCTC/f9FXGfQvExDXNRaa5u0zhJq6mUjXtlmLxJDkxkblf+yw=="
+  }, 
+  "src/openalea/nuclei_quantification/__init__.py": {
+    "base": "gR33dW0qqYmsV9NSNB+DD8XmuxnC2t0mKjnMoU5728qh97fSER6MbX+3QKxpZDLByZToaAay4xhx8acxketJmA=="
+  }, 
+  "src/openalea/nuclei_quantification/version.py": {
+    "version": "vlcF8GnD2TE81ja4r8xZsp7w0qmLS6xRAHhixvZJdfJX9wFjHN13OBzau05z0uc0zPzF9X+/JaCmy6rxDLYx9Q=="
+  }, 
+  "src/openalea_nuclei_quantification/__init__.py": {
+    "base": "gR33dW0qqYmsV9NSNB+DD8XmuxnC2t0mKjnMoU5728qh97fSER6MbX+3QKxpZDLByZToaAay4xhx8acxketJmA=="
+  }, 
+  "src/openalea_nuclei_quantification/version.py": {
+    "version": "K+3dAFVYyR1elQoz21ZVBOrqgY0XrwPJadWEoPoYfnWMFnSK9FGP7Tgvsv96IzROU6RUINAea9kWp4aFPaJkAg=="
+  }, 
+  "test/__init__.py": {}
+}

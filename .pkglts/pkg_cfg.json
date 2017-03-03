@@ -1,0 +1,46 @@
+{
+  "_pkglts": {
+    "auto_install": true, 
+    "install_front_end": "stdout", 
+    "use_prompts": false, 
+    "version": 3
+  }, 
+  "base": {
+    "authors": [
+      [
+        "Guillaume Cerutti", 
+        "guillaume.cerutti@inria.fr"
+      ]
+    ], 
+    "namespace": "openalea", 
+    "pkgname": "nuclei_quantification", 
+    "url": null
+  }, 
+  "doc": {
+    "description": "An OpenAlea library for the detection and quantitative data extraction from microscopy images of cell nuclei", 
+    "keywords": []
+  }, 
+  "github": {
+    "owner": "{{ base.authors[0][0] }}", 
+    "project": "{{ base.pkgname }}", 
+    "url": "https://github.com/{{ github.owner }}/{{ github.project }}"
+  }, 
+  "license": {
+    "name": "cecill-c", 
+    "organization": "openalea", 
+    "project": "{{ base.pkgname }}", 
+    "year": 2017
+  }, 
+  "pysetup": {
+    "intended_versions": [
+      "27"
+    ], 
+    "require": []
+  }, 
+  "test": {}, 
+  "version": {
+    "major": 0, 
+    "minor": 8, 
+    "post": 0
+  }
+}
