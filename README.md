@@ -1,25 +1,25 @@
 # Tissue NUKEM 3D
 
-###Authors:
+##Authors:
 * Guillaume Cerutti (<guillaume.cerutti@inria.fr>)
 * Sophie Ribes (<sophie.ribes@inria.fr>)
 
 
-###Institutes:
+##Institutes:
 * Inria (<http://www.inria.fr>)
 * RDP, ENS de Lyon - UMR 5667
 
 
-###License:
+##License:
 * `Cecill-C`
 * Uses CZI file reader developed by Christoph Gohlke <http://www.lfd.uci.edu/~gohlke/>
 * Uses LSM file reader developed by Charles Roduit <charles.roduit@gmail.com>
 
-###Description
+##Description
 
 An OpenAlea library for the detection and quantitative data extraction from microscopy images of cell nuclei.
 
-###Requirements
+##Requirements
 
 * NumPy / SciPy
 * OpenAlea.Deploy (<https://github.com/openalea/deploy>)
@@ -28,7 +28,7 @@ An OpenAlea library for the detection and quantitative data extraction from micr
 * OpenAlea.Image (<https://github.com/openalea/openalea-components>)
 * OpenAlea.CellComplex (<https://github.com/VirtualPlants/cellcomplex>)
 
-###Installation
+##Installation
 
 ```
 python setup.py develop --user
