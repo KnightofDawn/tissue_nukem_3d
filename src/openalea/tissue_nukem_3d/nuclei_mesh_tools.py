@@ -1,3 +1,23 @@
+# -*- coding: utf-8 -*-
+# -*- python -*-
+#
+#       Nuclei Quantification
+#
+#       Copyright 2015 INRIA - CIRAD - INRA
+#
+#       File author(s): Guillaume Cerutti <guillaume.cerutti@inria.fr>
+#
+#       File contributor(s): Sophie Ribes <sophie.ribes@inria.fr>,
+#                            Guillaume Cerutti <guillaume.cerutti@inria.fr>
+#
+#       Distributed under the Cecill-C License.
+#       See accompanying file LICENSE.txt or copy at
+#           http://www.cecill.info/licences/Licence_CeCILL-C_V1-en.html
+#
+#       TissueLab Website : http://virtualplants.github.io/
+#
+###############################################################################
+
 import numpy as np
 import scipy.ndimage as nd
 
@@ -15,7 +35,44 @@ from openalea.cellcomplex.property_topomesh.utils.implicit_surfaces import impli
 from openalea.cellcomplex.property_topomesh.property_topomesh_optimization import property_topomesh_vertices_deformation
 
 
-from vplants.sam4dmaps.sam_model_tools import nuclei_density_function
+def nuclei_density_function(nuclei_positions,cell_radius,k=0.1):
+    import numpy as np
+    
+    def density_func(x,y,z,return_potential=False):
+        
+        max_radius = cell_radius
+        # max_radius = 0.
+
+        points = np.array(nuclei_positions.values())
+
+
+        if len((x+y+z).shape) == 0:
+            cell_distances = np.power(np.power(x[np.newaxis] - points[:,0],2) +  np.power(y[np.newaxis] - points[:,1],2) + np.power(z[np.newaxis] - points[:,2],2),0.5)
+        elif len((x+y+z).shape) == 1:
+            cell_distances = np.power(np.power(x[np.newaxis] - points[:,0,np.newaxis],2) +  np.power(y[np.newaxis] - points[:,1,np.newaxis],2) + np.power(z[np.newaxis] - points[:,2,np.newaxis],2),0.5)
+        elif len((x+y+z).shape) == 2:
+            cell_distances = np.power(np.power(x[np.newaxis] - points[:,0,np.newaxis,np.newaxis],2) +  np.power(y[np.newaxis] - points[:,1,np.newaxis,np.newaxis],2) + np.power(z[np.newaxis] - points[:,2,np.newaxis,np.newaxis],2),0.5)
+        elif len((x+y+z).shape) == 3:
+            cell_distances = np.power(np.power(x[np.newaxis] - points[:,0,np.newaxis,np.newaxis,np.newaxis],2) +  np.power(y[np.newaxis] - points[:,1,np.newaxis,np.newaxis,np.newaxis],2) + np.power(z[np.newaxis] - points[:,2,np.newaxis,np.newaxis,np.newaxis],2),0.5)
+
+
+        density_potential = 1./2. * (1. - np.tanh(k*(cell_distances - (cell_radius+max_radius)/2.)))
+
+        if len(density_potential.shape)==1 and density_potential.shape[0]==1:
+            density = density_potential.sum()
+        else:
+            density = density_potential.sum(axis=0)
+
+        # density = np.zeros_like(x+y+z)
+        # for p in nuclei_positions.keys():
+        #     cell_distances = np.power(np.power(x-nuclei_positions[p][0],2) + np.power(y-nuclei_positions[p][1],2) + np.power(z-nuclei_positions[p][2],2),0.5)
+        #     density += 1./2. * (1. - np.tanh(k*(cell_distances - (cell_radius+max_radius)/2.)))
+        
+        if return_potential:
+            return density, density_potential
+        else:
+            return density
+    return density_func
 
 
 def nuclei_surface_topomesh(nuclei_topomesh, size, resolution, cell_radius=5.0, subsampling=6., density_k=0.25):

@@ -1,3 +1,23 @@
+# -*- coding: utf-8 -*-
+# -*- python -*-
+#
+#       Nuclei Quantification
+#
+#       Copyright 2015 INRIA - CIRAD - INRA
+#
+#       File author(s): Guillaume Cerutti <guillaume.cerutti@inria.fr>
+#
+#       File contributor(s): Sophie Ribes <sophie.ribes@inria.fr>,
+#                            Guillaume Cerutti <guillaume.cerutti@inria.fr>
+#
+#       Distributed under the Cecill-C License.
+#       See accompanying file LICENSE.txt or copy at
+#           http://www.cecill.info/licences/Licence_CeCILL-C_V1-en.html
+#
+#       TissueLab Website : http://virtualplants.github.io/
+#
+###############################################################################
+
 import numpy as np
 import pandas as pd
 

@@ -1,11 +1,29 @@
+# -*- coding: utf-8 -*-
+# -*- python -*-
+#
+#       Nuclei Quantification
+#
+#       Copyright 2015 INRIA - CIRAD - INRA
+#
+#       File author(s): Guillaume Cerutti <guillaume.cerutti@inria.fr>
+#
+#       File contributor(s): Sophie Ribes <sophie.ribes@inria.fr>,
+#                            Guillaume Cerutti <guillaume.cerutti@inria.fr>
+#
+#       Distributed under the Cecill-C License.
+#       See accompanying file LICENSE.txt or copy at
+#           http://www.cecill.info/licences/Licence_CeCILL-C_V1-en.html
+#
+#       TissueLab Website : http://virtualplants.github.io/
+#
+###############################################################################
+
 import numpy as np
 import scipy.ndimage as nd
 
-from vplants.sam4dmaps.nuclei_detection import detect_nuclei, compute_fluorescence_ratios
-from vplants.sam4dmaps.nuclei_segmentation import nuclei_active_region_segmentation, nuclei_positions_from_segmented_image
-
-from vplants.sam4dmaps.nuclei_mesh_tools import nuclei_layer, nuclei_curvature 
-from vplants.sam4dmaps.sam_model_tools import nuclei_density_function
+from openalea.tissue_nukem_3d.nuclei_detection import detect_nuclei, compute_fluorescence_ratios
+from openalea.tissue_nukem_3d.nuclei_segmentation import nuclei_active_region_segmentation, nuclei_positions_from_segmented_image
+from openalea.tissue_nukem_3d.nuclei_mesh_tools import nuclei_layer, nuclei_curvature, nuclei_density_function
         
 from openalea.container import array_dict
 
@@ -23,6 +41,10 @@ from openalea.image.spatial_image import SpatialImage
 
 
 def nuclei_image_topomesh(filename, dirname=None, reference_name='TagBFP', signal_names=['DIIV','CLV3'], compute_ratios=[True,False], compute_curvature=True, microscope_orientation=-1, recompute=False, threshold=1000, size_range_start=0.6, size_range_end=0.9, subsampling=4):
+    '''
+    TODO
+    '''
+
     if dirname is None:
         from openalea.deploy.shared_data import shared_data
         import vplants.meshing_data

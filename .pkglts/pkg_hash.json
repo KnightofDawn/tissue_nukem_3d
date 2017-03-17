@@ -33,12 +33,18 @@
   }, 
   "setup.py": {
     "pysetup.call": "2wHuP94SpWKZpqOzExkQGTxnhGPgBHK3qOdPn0Ncstj5FkZ7FBGGM/inqAXaI4QLKQtTNlOUYRGSkYUWAUcf1w==", 
-    "pysetup.kwds": "PHGLcTMg5p6Khxp0Mr2VcHpiZRK7/MUrEpkhKbCTC/f9FXGfQvExDXNRaa5u0zhJq6mUjXtlmLxJDkxkblf+yw=="
+    "pysetup.kwds": "k7ljwso81LLYvxhkSb+zF/y4AqZoxwDDwbLtdfMhsMKrp2ppw5lKkEiH7h/mqbzDdRWJbDQmRaCWiQo6kDabWA=="
   }, 
   "src/openalea/nuclei_quantification/__init__.py": {
     "base": "gR33dW0qqYmsV9NSNB+DD8XmuxnC2t0mKjnMoU5728qh97fSER6MbX+3QKxpZDLByZToaAay4xhx8acxketJmA=="
   }, 
   "src/openalea/nuclei_quantification/version.py": {
+    "version": "vlcF8GnD2TE81ja4r8xZsp7w0qmLS6xRAHhixvZJdfJX9wFjHN13OBzau05z0uc0zPzF9X+/JaCmy6rxDLYx9Q=="
+  }, 
+  "src/openalea/tissue_nukem_3d/__init__.py": {
+    "base": "gR33dW0qqYmsV9NSNB+DD8XmuxnC2t0mKjnMoU5728qh97fSER6MbX+3QKxpZDLByZToaAay4xhx8acxketJmA=="
+  }, 
+  "src/openalea/tissue_nukem_3d/version.py": {
     "version": "vlcF8GnD2TE81ja4r8xZsp7w0qmLS6xRAHhixvZJdfJX9wFjHN13OBzau05z0uc0zPzF9X+/JaCmy6rxDLYx9Q=="
   }, 
   "src/openalea_nuclei_quantification/__init__.py": {

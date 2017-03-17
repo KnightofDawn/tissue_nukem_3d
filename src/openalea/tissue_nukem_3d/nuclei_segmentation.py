@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 # -*- python -*-
 #
-#       Mersitem 4D Maps
+#       Nuclei Quantification
 #
 #       Copyright 2015 INRIA - CIRAD - INRA
 #
 #       File author(s): Guillaume Cerutti <guillaume.cerutti@inria.fr>
 #
-#       File contributor(s): Guillaume Cerutti <guillaume.cerutti@inria.fr>,
-#                            Julien Mille <julien.mille@liris.cnrs.fr>
+#       File contributor(s): Sophie Ribes <sophie.ribes@inria.fr>,
+#                            Guillaume Cerutti <guillaume.cerutti@inria.fr>
 #
 #       Distributed under the Cecill-C License.
 #       See accompanying file LICENSE.txt or copy at
@@ -23,7 +23,8 @@ import scipy.ndimage as nd
 
 from openalea.image.spatial_image import SpatialImage
 from openalea.container import array_dict
-from vplants.sam4dmaps.nuclei_detection import array_unique
+
+from openalea.tissue_nukem_3d.nuclei_detection import array_unique
 
 from time import time
 
