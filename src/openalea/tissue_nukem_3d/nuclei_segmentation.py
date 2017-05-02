@@ -28,30 +28,30 @@ from openalea.tissue_nukem_3d.nuclei_detection import array_unique
 
 from time import time
 
-def seed_image_from_points(size, resolution, positions, point_radius=1.0):
+def seed_image_from_points(size, voxelsize, positions, point_radius=1.0, background_label=1):
     """
     Generate a SpatialImage of a given shape with labelled spherical regions around points
     """
 
-    seed_img = np.ones(tuple(size),np.uint16)
+    seed_img = background_label*np.ones(tuple(size),np.uint16)
 
     size = np.array(size)
-    resolution = np.array(resolution)
+    voxelsize = np.array(voxelsize)
 
     for p in positions.keys():
-        image_neighborhood = np.array(np.ceil(point_radius/resolution),int)
+        image_neighborhood = np.array(np.ceil(point_radius/voxelsize),int)
         neighborhood_coords = np.mgrid[-image_neighborhood[0]:image_neighborhood[0]+1,-image_neighborhood[1]:image_neighborhood[1]+1,-image_neighborhood[2]:image_neighborhood[2]+1]
-        neighborhood_coords = np.concatenate(np.concatenate(np.transpose(neighborhood_coords,(1,2,3,0)))) + np.array(positions[p]/resolution,int)
+        neighborhood_coords = np.concatenate(np.concatenate(np.transpose(neighborhood_coords,(1,2,3,0)))) + np.array(positions[p]/voxelsize,int)
         neighborhood_coords = np.minimum(np.maximum(neighborhood_coords,np.array([0,0,0])),size-1)
         neighborhood_coords = array_unique(neighborhood_coords)
         
-        neighborhood_distance = np.linalg.norm(neighborhood_coords*resolution - positions[p],axis=1)
+        neighborhood_distance = np.linalg.norm(neighborhood_coords*voxelsize - positions[p],axis=1)
         neighborhood_coords = neighborhood_coords[neighborhood_distance<=point_radius]
         neighborhood_coords = tuple(np.transpose(neighborhood_coords))
         
         seed_img[neighborhood_coords] = p
 
-    return SpatialImage(seed_img,resolution=resolution)
+    return SpatialImage(seed_img,voxelsize=list(voxelsize))
 
 
 def inside_image(points, img):
@@ -204,7 +204,7 @@ def nuclei_active_region_segmentation(input_img, positions, omega_energies=dict(
     reference_img = deepcopy(input_img)
 
     size = np.array(reference_img.shape)
-    resolution = np.array(reference_img.resolution)
+    voxelsize = np.array(reference_img.voxelsize)
 
     if display:
         from openalea.core.world import World
@@ -214,25 +214,26 @@ def nuclei_active_region_segmentation(input_img, positions, omega_energies=dict(
         from scipy.ndimage.filters import gaussian_gradient_magnitude
         start_time = time()
         print "  --> Computing image gradient"
-        gradient = gaussian_gradient_magnitude(np.array(reference_img,np.float64),sigma=0.5/np.array(reference_img.resolution))
-        gradient_img = SpatialImage(np.array(gradient,np.uint16),resolution=reference_img.resolution)
+        gradient = gaussian_gradient_magnitude(np.array(reference_img,np.float64),sigma=0.5/np.array(reference_img.voxelsize))
+        gradient_img = SpatialImage(np.array(gradient,np.uint16),voxelsize=reference_img.voxelsize)
         end_time = time()
         print "  <-- Computing image gradient         [",end_time-start_time," s]"
 
     start_time = time()
     print "  --> Creating seed image"
-    seed_img = seed_image_from_points(size, resolution, positions, point_radius=1.0)
+    print positions.keys()
+    seed_img = seed_image_from_points(size, voxelsize, positions, point_radius=1.0)
     regions_img = np.copy(seed_img)
     end_time = time()
-    print "  <-- Creating seed image              [",end_time-start_time," s]"
+    print "  <-- Creating seed image       (",len(np.unique(regions_img))-1," regions )  [",end_time-start_time," s]"
 
     if display:
-        world.add(seed_img,'active_regions_seeds',colormap='glasbey',resolution=resolution,alphamap='constant',volume=False,cut_planes=True)
+        world.add(seed_img,'active_regions_seeds',colormap='glasbey',voxelsize=voxelsize,alphamap='constant',volume=False,cut_planes=True)
         raw_input()
 
     for iteration in xrange(iterations):
         start_time = time()
-        print "  --> Active region energy gradient descent : iteration",iteration
+        print "  --> Active region energy gradient descent : iteration",iteration," (",len(np.unique(regions_img))-1," regions )"
         previous_regions_img = np.copy(regions_img)
         regions_img = active_regions_energy_gradient_descent(regions_img,reference_img,omega_energies=omega_energies,intensity_min=intensity_min,gradient_img=gradient)
         change = ((regions_img-previous_regions_img) != 0.).sum() / float((regions_img > 1.).sum())
@@ -240,11 +241,11 @@ def nuclei_active_region_segmentation(input_img, positions, omega_energies=dict(
         print "  --> Active region energy gradient descent : iteration",iteration,"  (Evolution : ",int(100*change)," %)  ","[",end_time-start_time," s]"
 
         if display:
-            world.add(regions_img,'active_regions',colormap='invert_grey',resolution=resolution,intensity_range=(1,2))
+            world.add(regions_img,'active_regions',colormap='invert_grey',voxelsize=voxelsize,intensity_range=(1,2))
 
-    segmented_img = SpatialImage(regions_img,resolution=reference_img.resolution)
+    segmented_img = SpatialImage(regions_img,voxelsize=reference_img.voxelsize)
     if display:
-        world.add(segmented_img,'active_regions',colormap='glasbey',resolution=resolution,alphamap='constant')
+        world.add(segmented_img,'active_regions',colormap='glasbey',voxelsize=voxelsize,alphamap='constant')
         raw_input()
 
     segmentation_end_time = time()
@@ -256,9 +257,9 @@ def nuclei_active_region_segmentation(input_img, positions, omega_energies=dict(
 def nuclei_positions_from_segmented_image(segmented_img, background_label=1):
     """
     """
-    resolution = np.array(segmented_img.resolution)
+    voxelsize = np.array(segmented_img.voxelsize)
     segmented_cells = np.array([c for c in np.unique(segmented_img) if c!= background_label])
-    segmented_positions = array_dict(np.array(nd.center_of_mass(np.ones_like(segmented_img),segmented_img,index=segmented_cells))*resolution,segmented_cells)
+    segmented_positions = array_dict(np.array(nd.center_of_mass(np.ones_like(segmented_img),segmented_img,index=segmented_cells))*voxelsize,segmented_cells)
 
     return segmented_positions
 

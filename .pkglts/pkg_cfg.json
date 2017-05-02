@@ -16,6 +16,7 @@
     "pkgname": "tissue_nukem_3d", 
     "url": null
   }, 
+  "coverage": {}, 
   "doc": {
     "description": "An OpenAlea library for the detection and quantitative data extraction from microscopy images of cell nuclei", 
     "keywords": []

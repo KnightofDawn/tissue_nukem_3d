@@ -31,9 +31,9 @@ def view_image_projection(figure, img, colormap="Greys", intensity_range=None, c
     from matplotlib.colors import Normalize
     
     size = np.array(img.shape)
-    resolution = microscope_orientation*np.array(img.resolution)
+    voxelsize = microscope_orientation*np.array(img.voxelsize)
                 
-    xx, yy = np.mgrid[0:size[0]*resolution[0]:resolution[0],0:size[1]*resolution[1]:resolution[1]]
+    xx, yy = np.mgrid[0:size[0]*voxelsize[0]:voxelsize[0],0:size[1]*voxelsize[1]:voxelsize[1]]
     depth = np.power(np.tile(np.tile(np.arange(size[2]),(size[1],1)),(size[0],1,1))/float(size[2]),2)
     #depth = np.zeros_like(img).astype(float)
     extent = yy.min()-center[0],yy.max()-center[0],xx.min()-center[1],xx.max()-center[1]

@@ -34,6 +34,7 @@ setup_kwds = dict(
     install_requires=[
         ],
     tests_require=[
+        "coverage",
         "mock",
         "nose",
         ],

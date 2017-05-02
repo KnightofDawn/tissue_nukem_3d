@@ -32,7 +32,7 @@ def scale_space_transform(image, sigmas):
     from scipy.ndimage.filters import gaussian_filter, gaussian_laplace, laplace
 
     size = np.array(image.shape)
-    spacing = np.array(image.resolution)
+    spacing = np.array(image.voxelsize)
     scale_space = np.zeros((len(sigmas),size[0],size[1],size[2]),dtype=float)
 
     for i in xrange(len(sigmas)):
@@ -43,25 +43,26 @@ def scale_space_transform(image, sigmas):
             
             laplace_img = laplace(gaussian_img)
             scale_space[i, : , : , : ] = laplace_img
+            # scale_space[i, : , : , : ] = gaussian_img
             previous_gaussian_img = gaussian_img
     
     return scale_space
 
-def detect_peaks_3D_scale_space(scale_space_images,sigmas,threshold=None,resolution=[1,1,1]):
+def detect_peaks_3D_scale_space(scale_space_images,sigmas,threshold=None,voxelsize=[1,1,1]):
     """
     Identify local maxima in a 4D scale-space image
     :scale_space_images: np.ndarray containing scale-space transform of a 3d image
     :sigmas: list of scales used to generate the scale-space
     :threshold: minimal intensity to be reached by a candidate maximum
-    :resolution: spatial resolution of the 3D images
+    :voxelsize: spatial voxelsize of the 3D images
     :returns: np.ndarray containing 4D coordinates of local maxima
     """
     from time import time
 
-    def scale_spatial_local_max(scale_space_images,s,x,y,z,neighborhood=1,resolution=(1,1,1)):
+    def scale_spatial_local_max(scale_space_images,s,x,y,z,neighborhood=1,voxelsize=(1,1,1)):
 
         scales = scale_space_images.shape[0] 
-        image_neighborhood = np.array(np.ceil(neighborhood/np.array(resolution)),int)
+        image_neighborhood = np.array(np.ceil(neighborhood/np.array(voxelsize)),int)
         neighborhood_coords = np.mgrid[0:scales+1,-image_neighborhood[0]:image_neighborhood[0]+1,-image_neighborhood[1]:image_neighborhood[1]+1,-image_neighborhood[2]:image_neighborhood[2]+1]
         neighborhood_coords = np.concatenate(np.concatenate(np.concatenate(np.transpose(neighborhood_coords,(1,2,3,4,0))))) + np.array([0,x,y,z])
         neighborhood_coords = np.minimum(np.maximum(neighborhood_coords,np.array([0,0,0,0])),np.array(scale_space_images.shape)-1)
@@ -98,7 +99,7 @@ def detect_peaks_3D_scale_space(scale_space_images,sigmas,threshold=None,resolut
     for p,point in enumerate(points):
         if p%10000 == 0:
             print p,"/",points.shape[0]
-        if scale_spatial_local_max(scale_space_images,point[0],point[1],point[2],point[3],neighborhood=sigmas[point[0]],resolution=resolution):
+        if scale_spatial_local_max(scale_space_images,point[0],point[1],point[2],point[3],neighborhood=sigmas[point[0]],voxelsize=voxelsize):
             peaks.append(point)
 
     end_time = time()
@@ -113,7 +114,7 @@ def detect_nuclei(nuclei_img, threshold = 3000., size_range_start = 0.4, size_ra
     Detect nuclei positions in a (16-bit) nuclei marker SpatialImage
     """
 
-    resolution = np.array(nuclei_img.resolution)
+    voxelsize = np.array(nuclei_img.voxelsize)
     size = np.array(nuclei_img.shape)
 
     step = 0.1
@@ -132,16 +133,27 @@ def detect_nuclei(nuclei_img, threshold = 3000., size_range_start = 0.4, size_ra
             print "(k-1)*sigma^2 : ",(np.exp(step)-1)*np.power(np.exp(sigmas[i-1]),2)
 
             DoG_image = np.power(np.exp(sigmas[i-1]),2)*scale_space[i] - np.power(np.exp(sigmas[i]),2)*scale_space[i-1]
+            # DoG_image = scale_space[i] - scale_space[i-1]
             scale_space_DoG.append(DoG_image)
             scale_space_sigmas.append(np.exp(sigmas[i-1]))
     scale_space_DoG = np.array(scale_space_DoG)
     scale_space_sigmas = np.array(scale_space_sigmas)
     print "Scale Space Size : ",scale_space_DoG.shape
 
-    peaks = detect_peaks_3D_scale_space(scale_space_DoG,scale_space_sigmas,threshold=threshold,resolution=np.array(nuclei_img.resolution))
+    peaks = detect_peaks_3D_scale_space(scale_space_DoG,scale_space_sigmas,threshold=threshold,voxelsize=np.array(nuclei_img.voxelsize))
+
+    # scale_space_LoG = []
+    # scale_space_sigmas = []
+    # for i in xrange(len(sigmas)):
+    #     scale_space_LoG.append(np.power(np.exp(sigmas[i]),2)*scale_space[i])
+    #     scale_space_sigmas.append(np.exp(sigmas[i]))
+    # scale_space_LoG = np.array(scale_space_LoG)
+    # scale_space_sigmas = np.array(scale_space_sigmas)
+
+    # peaks = detect_peaks_3D_scale_space(scale_space_LoG,scale_space_sigmas,threshold=threshold,voxelsize=np.array(nuclei_img.voxelsize))
 
     peak_scales = dict(zip(np.arange(peaks.shape[0]),scale_space_sigmas[peaks[:,0]]))
-    peak_positions = dict(zip(np.arange(peaks.shape[0]),peaks[:,1:]*resolution))
+    peak_positions = dict(zip(np.arange(peaks.shape[0]),peaks[:,1:]*voxelsize))
 
     return peak_positions
 
@@ -150,12 +162,12 @@ def compute_fluorescence_ratios(nuclei_img, signal_img, nuclei_points, nuclei_si
     """
     from scipy.ndimage.filters import gaussian_filter
 
-    resolution = np.array(nuclei_img.resolution)
+    voxelsize = np.array(nuclei_img.voxelsize)
 
-    filtered_nuclei_img = gaussian_filter(nuclei_img.astype(float),sigma=resolution*nuclei_sigma,order=0)
-    filtered_signal_img = gaussian_filter(signal_img.astype(float),sigma=resolution*nuclei_sigma,order=0)
+    filtered_nuclei_img = gaussian_filter(nuclei_img.astype(float),sigma=voxelsize*nuclei_sigma,order=0)
+    filtered_signal_img = gaussian_filter(signal_img.astype(float),sigma=voxelsize*nuclei_sigma,order=0)
 
-    coords = np.array(np.array(nuclei_points.values())/resolution,int)
+    coords = np.array(np.array(nuclei_points.values())/voxelsize,int)
     print coords
 
     points_signal = filtered_signal_img[tuple([coords[:,0],coords[:,1],coords[:,2]])]

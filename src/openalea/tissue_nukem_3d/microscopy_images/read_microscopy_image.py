@@ -11,25 +11,25 @@ def read_lsm_image(lsm_file, channel_names=None):
     lsm_img = lsmreader.Lsmimage(lsm_file)
     lsm_img.open()
 
-    resolution = tuple([float(np.around(lsm_img.header['CZ LSM info']['Voxel Size '+dim]*1000000,decimals=3)) for dim in ['X','Y','Z']])
+    voxelsize = tuple([float(np.around(lsm_img.header['CZ LSM info']['Voxel Size '+dim]*1000000,decimals=3)) for dim in ['X','Y','Z']])
     n_channels = len(lsm_img.image['data'])
 
     filename = lsm_file.split('/')[-1]
-    print filename," : ",n_channels," Channels ",resolution
+    print filename," : ",n_channels," Channels ",voxelsize
 
     if n_channels > 1:
         if channel_names is None:
             channel_names = ["CH"+str(i) for i in range(n_channels)]
         img = {}
         for i_channel,channel_name in enumerate(channel_names):
-            img[channel_name] = SpatialImage(lsm_img.image['data'][i_channel],voxelsize=resolution)
+            img[channel_name] = SpatialImage(lsm_img.image['data'][i_channel],voxelsize=voxelsize)
     else:
-        img = SpatialImage(lsm_img.image['data'][0],voxelsize=resolution)
+        img = SpatialImage(lsm_img.image['data'][0],voxelsize=voxelsize)
 
     return img
 
 
-def read_czi_image(czi_file, channel_names=None, save_as_inr=False, saving_directory=None, saving_filename=None):
+def read_czi_image(czi_file, channel_names=None):
     from czifile import CziFile
 
     czi_img = CziFile(czi_file)
@@ -46,21 +46,41 @@ def read_czi_image(czi_file, channel_names=None, save_as_inr=False, saving_direc
                         s = metadata[i+1]
                         voxelsize[row.split('"')[1]] = np.around(float(s[s.find('>')+1:s.find('>')+s[s.find('>'):].find('<')])*1e6,decimals=3)
 
-    resolution = tuple([voxelsize[dim] for dim in ['X','Y','Z']])
+    voxelsize = tuple([voxelsize[dim] for dim in ['X','Y','Z']])
     n_channels = czi_channels.shape[0]
 
-    print czi_file.split('/')[-1]," : ",n_channels," Channels ",resolution
+    print czi_file.split('/')[-1]," : ",n_channels," Channels ",voxelsize
 
     if n_channels > 1:
         if channel_names is None:
             channel_names = ["CH"+str(i) for i in range(n_channels)]
         img = {}
         for i_channel,channel_name in enumerate(channel_names):
-            img[channel_name] = SpatialImage(czi_channels[i_channel],voxelsize=resolution)
+            img[channel_name] = SpatialImage(czi_channels[i_channel],voxelsize=voxelsize)
     else:
-        img = SpatialImage(czi_channels[0],voxelsize=resolution)
+        img = SpatialImage(czi_channels[0],voxelsize=voxelsize)
 
     return img
+
+def read_tiff_image(tiff_file, channel_names=None):
+    from tifffile import TiffFile
+
+    tiff_img = TiffFile(tiff_file)
+    tiff_channels = tiff_img.asarray()
+
+    n_channels = 1 if tiff_channels.ndim==3 else tiff_channels.shape[1]
+
+    if n_channels > 1:
+        if channel_names is None:
+            channel_names = ["CH"+str(i) for i in range(n_channels)]
+        img = {}
+        for i_channel,channel_name in enumerate(channel_names):
+            img[channel_name] = SpatialImage(np.transpose(tiff_channels[:,i_channel],(1,2,0)))
+    else:
+        img = SpatialImage(np.transpose(tiff_channels,(1,2,0)))
+
+    return img
+
 
 
 def export_microscopy_image_as_inr(image_file, channel_names=None, saving_directory=None, saving_filename=None):
@@ -98,6 +118,8 @@ def imread(image_file, channel_names=None):
         return read_lsm_image(image_file,channel_names)
     elif image_file.split('.')[-1] == 'czi':
         return read_czi_image(image_file,channel_names)
+    elif image_file.split('.')[-1] in ['tif','tiff']:
+        return read_tiff_image(image_file,channel_names)
     else:
         return oa_imread(image_file)
 
