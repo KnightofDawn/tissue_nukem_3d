@@ -23,9 +23,9 @@ import pandas as pd
 
 import scipy.ndimage as nd
 
-            
+from openalea.tissue_nukem_3d.epidermal_maps import compute_local_2d_signal
+
 def image_layer_slices(positions, images, microscope_orientation=1):
-    from vplants.sam4dmaps.signal_map_interpretation import compute_local_2d_signal
 
     X = positions[:,0]
     Y = positions[:,1]
