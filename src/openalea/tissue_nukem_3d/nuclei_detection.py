@@ -36,6 +36,7 @@ def scale_space_transform(image, sigmas):
     scale_space = np.zeros((len(sigmas),size[0],size[1],size[2]),dtype=float)
 
     for i in xrange(len(sigmas)):
+        print "Sigma : ",np.exp(spacing*sigmas[i])
         if i==0:
             previous_gaussian_img = gaussian_filter(image,sigma=np.exp(spacing*sigmas[i]),order=0)
         else:
@@ -109,7 +110,7 @@ def detect_peaks_3D_scale_space(scale_space_images,sigmas,threshold=None,voxelsi
 
     return np.array(peaks)
 
-def detect_nuclei(nuclei_img, threshold = 3000., size_range_start = 0.4, size_range_end = 0.7):
+def detect_nuclei(nuclei_img, threshold = 3000., radius_range=(1.8,2.2)):
     """
     Detect nuclei positions in a (16-bit) nuclei marker SpatialImage
     """
@@ -119,7 +120,8 @@ def detect_nuclei(nuclei_img, threshold = 3000., size_range_start = 0.4, size_ra
 
     step = 0.1
     # sigmas = np.arange(float(size_range_start),float(size_range_end),step)
-    sigmas = np.linspace(size_range_start,size_range_end-step,np.round((size_range_end-size_range_start)/step))
+    # sigmas = np.linspace(size_range_start,size_range_end-step,np.round((size_range_end-size_range_start)/step))
+    sigmas = np.linspace(np.log(radius_range[0]),np.log(radius_range[1]),np.ceil(np.log(radius_range[1]/radius_range[0])/step))
     print sigmas
     scale_space = scale_space_transform(nuclei_img,sigmas)
 

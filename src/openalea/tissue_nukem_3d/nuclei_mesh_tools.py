@@ -286,12 +286,15 @@ def nuclei_layer(nuclei_positions, size, voxelsize, return_topomesh=False):
         return cell_layer
 
 
-def nuclei_topomesh_curvature(topomesh, surface_subdivision=1, return_topomesh=False):
+def nuclei_topomesh_curvature(topomesh, surface_subdivision=1, return_topomesh=False, projection_center=None):
     L1_cells = topomesh.wisp_property('layer',0).keys()[topomesh.wisp_property('layer',0).values()==1]
     cell_barycenters = array_dict(topomesh.wisp_property('barycenter',0).values(L1_cells),L1_cells)
     
-    center = cell_barycenters.values().mean(axis=0) 
-    center[2] -= 3.*(cell_barycenters.values()-cell_barycenters.values().mean(axis=0))[:,2].max()
+    if projection_center is None:
+        center = cell_barycenters.values().mean(axis=0) 
+        center[2] -= 2.*(cell_barycenters.values()-cell_barycenters.values().mean(axis=0))[:,2].max()
+    else:
+        center = np.array(projection_center)
     
     cell_vectors = cell_barycenters.values() - center
     cell_r = np.linalg.norm(cell_vectors,axis=1)

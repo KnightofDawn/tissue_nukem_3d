@@ -42,12 +42,13 @@ from openalea.image.spatial_image import SpatialImage
 from copy import deepcopy
 
 
-def nuclei_detection(reference_img, threshold=1000, size_range=(0.6,0.9), subsampling=4, microscope_orientation=1):
+def nuclei_detection(reference_img, threshold=1000, radius_range=(1.8,2.2), subsampling=4, microscope_orientation=1):
 
     size = np.array(reference_img.shape)
     voxelsize = microscope_orientation*np.array(reference_img.voxelsize)
 
-    positions = detect_nuclei(reference_img,threshold=threshold,size_range_start=size_range[0],size_range_end=size_range[1])
+
+    positions = detect_nuclei(reference_img,threshold=threshold,radius_range=radius_range)
     positions = array_dict(positions)
     positions = array_dict(positions.values(),positions.keys()+2).to_dict()
 
@@ -70,7 +71,58 @@ def nuclei_detection(reference_img, threshold=1000, size_range=(0.6,0.9), subsam
     return positions
 
 
-def nuclei_image_topomesh(image_dict, reference_name='TagBFP', signal_names=['DIIV','CLV3'], compute_ratios=[True,False], microscope_orientation=-1, threshold=1000, size_range=(0.6,0.9), subsampling=4):
+def nuclei_image_topomesh(image_dict, reference_name='TagBFP', signal_names=['DIIV','CLV3'], compute_ratios=[True,False], microscope_orientation=1, radius_range=(1.8,2.2), threshold=1000, subsampling=4, nuclei_sigma=2.0, compute_layer=True, compute_curvature=True):
+    """Compute a point cloud PropertyTopomesh with image nuclei.
+
+    The function runs a nuclei detection on the reference channel of
+    the image, and then computes the signal intensities from the other
+    channels (ratiometric or not) for each detected point. Additionnally,
+    it can estimate the first layer of cells and compute the curvature
+    on the surface.
+
+
+    Args:
+        image_dict (dict):
+            An SatialImage dictionary with channel names as keys.
+        reference_name (str):
+            The name of the channel containing nuclei marker.
+        signal_names (list):
+            A list of the channel names on which to quantify signal.
+        compute_ratios (list):
+            A list of booleans stating if signal is to be computed 
+            as channel intensity (False) or as a ratio between channel
+            intensity and reference channel intensity (True) for each
+            channel name in signal_names argument.
+        microscope_orientation (int):
+            1 for an upright microscope, -1 for an inverted one, in
+            order to estimate consistently the upper layer of cells.
+        radius_range (tuple):
+            A tuple of two lengths (in microns) corresponding to the 
+            typical size of nuclei to be detected in the image.
+        threshold (int):
+            A response intensity threshold for the detection, to 
+            eliminate weak local maxima of response intensity. 
+        subsampling (int):
+            A downsampling factor to make the region growing part of 
+            the detection faster.
+        nuclei_sigma (float):
+            The standard deviation (in microns) of the gaussian kernel
+            used to quantify the signals.
+        compute_layer (bool):
+            Whether to estimate the first layer of cells based on the
+            point cloud geometry.
+        compute_curvature (bool):
+            Whether to estimate surface curvature on the epidermal 
+            layer of cells (compute_layer must be set to True)
+
+    Returns:
+        topomesh (:class:`openaela.mesh.PropertyTopomesh`):
+            A point cloud structure with properties defined for each
+            quantified signal, cell layer (if compute_layer argument 
+            is set to True) and mean and gaussian curvatures (if 
+            compute_curvature argument is set to true)
+    """
+
     try:
         assert isinstance(image_dict,dict)
     except:
@@ -84,7 +136,7 @@ def nuclei_image_topomesh(image_dict, reference_name='TagBFP', signal_names=['DI
     size = np.array(reference_img.shape)
     voxelsize = microscope_orientation*np.array(reference_img.voxelsize)
 
-    positions = nuclei_detection(reference_img, threshold=threshold, size_range=size_range, subsampling=subsampling, microscope_orientation=1)
+    positions = nuclei_detection(reference_img, threshold=threshold, radius_range=radius_range, subsampling=subsampling, microscope_orientation=1)
 
     signal_values = {}
     for signal_name, compute_ratio in zip(signal_names,compute_ratios):
@@ -103,21 +155,23 @@ def nuclei_image_topomesh(image_dict, reference_name='TagBFP', signal_names=['DI
     cell_layer, surface_topomesh = nuclei_layer(positions,size,voxelsize,return_topomesh=True)    
     topomesh.update_wisp_property('layer',0,cell_layer)
 
-    triangulation_topomesh = nuclei_topomesh_curvature(topomesh,surface_subdivision=0,return_topomesh=True)
+    compute_curvature = False
+    if compute_curvature:
+        triangulation_topomesh = nuclei_topomesh_curvature(topomesh,surface_subdivision=0,return_topomesh=True)
 
-    from copy import deepcopy
-    topomesh._borders[1] = deepcopy(triangulation_topomesh._borders[1])
-    topomesh._regions[0] = deepcopy(triangulation_topomesh._regions[0])
-    for v in cell_layer.keys():
-        if not v in topomesh._regions[0]:
-            topomesh._regions[0][v] = []
-    topomesh._borders[2] = deepcopy(triangulation_topomesh._borders[2])
-    topomesh._regions[1] = deepcopy(triangulation_topomesh._regions[1])
-    for t in topomesh.wisps(2):
-        topomesh._regions[2][t] = []
-    topomesh.add_wisps(3,0)
-    for t in topomesh.wisps(2):
-        topomesh.link(3,0,t)
+        from copy import deepcopy
+        topomesh._borders[1] = deepcopy(triangulation_topomesh._borders[1])
+        topomesh._regions[0] = deepcopy(triangulation_topomesh._regions[0])
+        for v in cell_layer.keys():
+            if not v in topomesh._regions[0]:
+                topomesh._regions[0][v] = []
+        topomesh._borders[2] = deepcopy(triangulation_topomesh._borders[2])
+        topomesh._regions[1] = deepcopy(triangulation_topomesh._regions[1])
+        for t in topomesh.wisps(2):
+            topomesh._regions[2][t] = []
+        topomesh.add_wisps(3,0)
+        for t in topomesh.wisps(2):
+            topomesh.link(3,0,t)
 
     return topomesh
         
