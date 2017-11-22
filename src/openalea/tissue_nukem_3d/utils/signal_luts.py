@@ -51,6 +51,13 @@ signal_ranges['surface_distance'] = (0,100)
 signal_ranges['sam_id'] = (0,30)
 signal_ranges['next_relative_surfacic_growth'] = (0.9,1.3)
 
+channel_ranges= {}
+channel_ranges['DIIV'] = (2000,10000)
+channel_ranges['DR5'] = (2000,35000)
+channel_ranges['AHP6'] = (2000,30000)
+channel_ranges['CLV3'] = (2000,40000)
+channel_ranges['TagBFP'] = (2000,40000)
+
 signal_lut_ranges= {}
 signal_lut_ranges['CLV3'] = (0,10000)
 signal_lut_ranges['DIIV'] = (500,6000)
@@ -78,6 +85,14 @@ signal_colormaps['nuclei_distance'] = 'geo_jet'
 signal_colormaps['surface_distance'] = 'geo_jet'
 signal_colormaps['sam_id'] = 'Blues'
 signal_colormaps['next_relative_surfacic_growth'] = 'jet'
+
+
+channel_colormaps = {}
+channel_colormaps['CLV3'] = 'Purples'
+channel_colormaps['DIIV'] = 'Greens'
+channel_colormaps['DR5'] = 'Oranges'
+channel_colormaps['AHP6'] = 'Blues'
+channel_colormaps['TagBFP'] = 'invert_grey'
 
 contour_ranges = {}
 contour_ranges['Normalized_DIIV'] = (0.25,0.45)

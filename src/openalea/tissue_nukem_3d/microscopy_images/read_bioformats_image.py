@@ -32,13 +32,19 @@ def imread(filename, channel_names=None):
         if reader.rdr.getSizeC()==1:
             img = img[:,:,:,:,np.newaxis]
 
-        img = np.transpose(img,(0,4,2,3,1))
+        # img = np.transpose(img,(0,4,2,3,1))
+        img = np.transpose(img,(1,4,3,2,0))
         
         series_name = img_metadata.image(s).Name
         
         vx = get_float_attr(img_metadata.image(s).Pixels.node,"PhysicalSizeX")
         vy = get_float_attr(img_metadata.image(s).Pixels.node,"PhysicalSizeY")
         vz = get_float_attr(img_metadata.image(s).Pixels.node,"PhysicalSizeZ")
+
+        vx = 1 if vx is None else vx
+        vy = 1 if vy is None else vy
+        vz = 1 if vz is None else vz
+        print (vx,vy,vz)
         
         bits = get_int_attr(img_metadata.image(s).Pixels.node,"SignificantBits")
         
