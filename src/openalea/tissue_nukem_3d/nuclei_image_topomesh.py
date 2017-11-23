@@ -71,7 +71,7 @@ def nuclei_detection(reference_img, threshold=1000, radius_range=(1.8,2.2), subs
     return positions
 
 
-def nuclei_image_topomesh(image_dict, reference_name='TagBFP', signal_names=['DIIV','CLV3'], compute_ratios=[True,False], microscope_orientation=1, radius_range=(1.8,2.2), threshold=1000, subsampling=4, nuclei_sigma=2.0, compute_layer=True, compute_curvature=True):
+def nuclei_image_topomesh(image_dict, reference_name='TagBFP', signal_names=['DIIV','CLV3'], compute_ratios=[True,False], microscope_orientation=1, radius_range=(1.8,2.2), threshold=1000, subsampling=4, surface_subsampling=6, nuclei_sigma=2.0, compute_layer=True, compute_curvature=True, return_surface=False):
     """Compute a point cloud PropertyTopomesh with image nuclei.
 
     The function runs a nuclei detection on the reference channel of
@@ -146,13 +146,16 @@ def nuclei_image_topomesh(image_dict, reference_name='TagBFP', signal_names=['DI
         signal_values[signal_name] = compute_fluorescence_ratios(ratio_img,signal_img,positions)
         
     positions = array_dict(positions)
-    positions = array_dict(positions.values()*microscope_orientation,positions.keys()).to_dict()
+  
 
+    positions = array_dict(positions.values()*microscope_orientation,positions.keys()).to_dict()
     topomesh = vertex_topomesh(positions)
+    
     for signal_name in signal_names:
         topomesh.update_wisp_property(signal_name,0,signal_values[signal_name])
-
-    cell_layer, surface_topomesh = nuclei_layer(positions,size,voxelsize,return_topomesh=True)    
+    
+    cell_layer, surface_topomesh = nuclei_layer(positions,size,voxelsize,subsampling=surface_subsampling,return_topomesh=True) 
+    # cell_layer, surface_topomesh = nuclei_layer(positions,size,np.array(reference_img.voxelsize),return_topomesh=True) 
     topomesh.update_wisp_property('layer',0,cell_layer)
 
     compute_curvature = False
@@ -173,7 +176,10 @@ def nuclei_image_topomesh(image_dict, reference_name='TagBFP', signal_names=['DI
         for t in topomesh.wisps(2):
             topomesh.link(3,0,t)
 
-    return topomesh
+    if return_surface:
+        return topomesh, surface_topomesh
+    else:
+        return topomesh
         
 
 # def nuclei_image_file_topomesh(filename, dirname=None, reference_name='TagBFP', signal_names=['DIIV','CLV3'], compute_ratios=[True,False], compute_curvature=True, microscope_orientation=-1, recompute=False, threshold=1000, size_range_start=0.6, size_range_end=0.9, subsampling=4):

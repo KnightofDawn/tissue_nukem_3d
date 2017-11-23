@@ -139,7 +139,7 @@ def nuclei_surface_topomesh(nuclei_topomesh, size, voxelsize, cell_radius=5.0, s
 
 
 # def nuclei_layer(nuclei_positions, size, voxelsize, maximal_distance=12., maximal_eccentricity=0.8, return_topomesh=False, display=False):
-def nuclei_layer(nuclei_positions, size, voxelsize, return_topomesh=False):
+def nuclei_layer(nuclei_positions, size, voxelsize, subsampling=4., return_topomesh=False):
     positions = array_dict(nuclei_positions)
 
     # if display:
@@ -224,7 +224,7 @@ def nuclei_layer(nuclei_positions, size, voxelsize, return_topomesh=False):
     #         if np.any(cell_layer.values(list(triangulation_topomesh.region_neighbors(0,c))) == 1):
     #             cell_layer[c] = 2
 
-    grid_voxelsize = np.sign(voxelsize)*[4.,4.,4.]
+    grid_voxelsize = np.sign(voxelsize)*subsampling
     x,y,z = np.ogrid[-0.5*size[0]*voxelsize[0]:1.5*size[0]*voxelsize[0]:grid_voxelsize[0],-0.5*size[1]*voxelsize[1]:1.5*size[1]*voxelsize[1]:grid_voxelsize[1],-0.5*size[2]*voxelsize[2]:1.5*size[2]*voxelsize[2]:grid_voxelsize[2]]
     grid_size = 2*size
 
