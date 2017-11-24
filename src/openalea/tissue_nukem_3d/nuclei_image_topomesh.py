@@ -72,7 +72,7 @@ def nuclei_detection(reference_img, threshold=1000, radius_range=(0.8,1.4), step
     return positions
 
 
-def nuclei_image_topomesh(image_dict, reference_name='TagBFP', signal_names=['DIIV','CLV3'], compute_ratios=[True,False], microscope_orientation=1, radius_range=(1.8,2.2), threshold=1000, subsampling=4, surface_subsampling=6, nuclei_sigma=2.0, compute_layer=True, compute_curvature=True, return_surface=False):
+def nuclei_image_topomesh(image_dict, reference_name='TagBFP', signal_names=['DIIV','CLV3'], compute_ratios=[True,False], microscope_orientation=1, radius_range=(0.8,1.4), threshold=1000, subsampling=4, surface_subsampling=6, nuclei_sigma=2.0, compute_layer=True, compute_curvature=True, return_surface=False):
     """Compute a point cloud PropertyTopomesh with image nuclei.
 
     The function runs a nuclei detection on the reference channel of
