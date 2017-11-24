@@ -42,7 +42,7 @@ from openalea.image.spatial_image import SpatialImage
 from copy import deepcopy
 
 
-def nuclei_detection(reference_img, threshold=1000, radius_range=(0.8,1.4), step=0.2, segmentation_centering=True, subsampling=4, microscope_orientation=1):
+def nuclei_detection(reference_img, threshold=1000, radius_range=(0.8,1.4), step=0.2, segmentation_centering=False, subsampling=4, microscope_orientation=1):
 
     size = np.array(reference_img.shape)
     voxelsize = microscope_orientation*np.array(reference_img.voxelsize)
