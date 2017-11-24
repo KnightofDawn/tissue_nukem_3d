@@ -40,7 +40,7 @@ for cmap_name in ['1Flashy_green','1Flashy_purple','1Flashy_orange','1Flashy_tur
 signal_ranges= {}
 signal_ranges['DIIV'] = (1000,8000)
 signal_ranges['qDII'] = (0,1.0)
-signal_ranges['Auxin'] = (0,1.0)
+signal_ranges['Auxin'] = (-0.5,1.0)
 signal_ranges['DR5'] = (0,25000)
 signal_ranges['AHP6'] = (0,10000)
 signal_ranges['CLV3'] = (0,20000)
@@ -97,6 +97,7 @@ channel_colormaps['TagBFP'] = 'invert_grey'
 contour_ranges = {}
 contour_ranges['Normalized_DIIV'] = (0.25,0.45)
 # contour_ranges['qDII'] = (0.3,0.5)
+contour_ranges['CLV3'] = (2000,10000)
 contour_ranges['qDII'] = (-0.05,0.15)
 contour_ranges['Auxin'] = (0.45,0.65)
 contour_ranges['Normalized_DR5'] = (0.75,1.25)
@@ -106,6 +107,7 @@ contour_ranges['next_relative_surfacic_growth'] = (1.09,1.19)
 
 contour_colormaps = {}
 contour_colormaps['Normalized_DIIV'] = 'Greens'
+contour_colormaps['CLV3'] = 'PuRd'
 contour_colormaps['qDII'] = 'winter_r'
 contour_colormaps['Auxin'] = 'spring_r'
 contour_colormaps['Normalized_DR5'] = 'Oranges_r'

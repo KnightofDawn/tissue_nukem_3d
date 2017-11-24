@@ -24,7 +24,8 @@ from openalea.tissue_nukem_3d.example_image import example_nuclei_image, example
 
 def test_detection():
 	n_points = 10
-	img = example_nuclei_image(n_points=n_points,size=15)
+	nuclei_radius = 1.5
+	img = example_nuclei_image(n_points=n_points,size=15,nuclei_radius=nuclei_radius)
 
 	from openalea.tissue_nukem_3d.nuclei_detection import detect_nuclei
 

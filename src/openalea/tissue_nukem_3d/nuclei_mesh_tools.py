@@ -242,14 +242,14 @@ def nuclei_layer(nuclei_positions, size, voxelsize, subsampling=4., return_topom
     triangle_down_facing = np.any(surface_topomesh.wisp_property('downward',0).values(surface_topomesh.wisp_property('vertices',2).values(list(surface_topomesh.wisps(2)))),axis=1)
     triangle_down_facing = triangle_down_facing.astype(float)
     surface_topomesh.update_wisp_property('downward',2,array_dict(triangle_down_facing,keys=list(surface_topomesh.wisps(2))))
-    
+
     for i,t in enumerate(surface_topomesh.wisps(2)):
         if surface_topomesh.wisp_property('downward',2)[t] == 1:
             triangle_neighbors = list(surface_topomesh.border_neighbors(2,t))
             if np.any(surface_topomesh.wisp_property('downward',2).values(triangle_neighbors)==0):
                 triangle_down_facing[i] = 0.5
     surface_topomesh.update_wisp_property('downward',2,array_dict(triangle_down_facing,keys=list(surface_topomesh.wisps(2))))
-    
+
     triangles_to_remove = np.array(list(surface_topomesh.wisps(2)))[surface_topomesh.wisp_property('downward',2).values() == 1]
     for t in triangles_to_remove:
         surface_topomesh.remove_wisp(2,t)
@@ -265,7 +265,7 @@ def nuclei_layer(nuclei_positions, size, voxelsize, subsampling=4., return_topom
     #top_surface_topomesh = cut_surface_topomesh(surface_topomesh,z_cut=0.8*size[2]*voxelsize[2])
     top_surface_topomesh = topomesh_connected_components(surface_topomesh)[0]
     top_surface_topomesh = topomesh_triangle_split(top_surface_topomesh)
-    
+
     #world.add(top_surface_topomesh,'top_surface')
     
     surface_points = top_surface_topomesh.wisp_property('barycenter',0).values(list(top_surface_topomesh.wisps(0)))

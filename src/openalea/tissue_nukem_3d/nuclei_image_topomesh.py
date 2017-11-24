@@ -42,30 +42,31 @@ from openalea.image.spatial_image import SpatialImage
 from copy import deepcopy
 
 
-def nuclei_detection(reference_img, threshold=1000, radius_range=(1.8,2.2), subsampling=4, microscope_orientation=1):
+def nuclei_detection(reference_img, threshold=1000, radius_range=(0.8,1.4), step=0.2, segmentation_centering=True, subsampling=4, microscope_orientation=1):
 
     size = np.array(reference_img.shape)
     voxelsize = microscope_orientation*np.array(reference_img.voxelsize)
 
 
-    positions = detect_nuclei(reference_img,threshold=threshold,radius_range=radius_range)
+    positions = detect_nuclei(reference_img,threshold=threshold,radius_range=radius_range, step=step)
     positions = array_dict(positions)
     positions = array_dict(positions.values(),positions.keys()+2).to_dict()
 
-    nuclei_img = deepcopy(reference_img)
-    image_coords = tuple(np.transpose((positions.values()/voxelsize).astype(int)))
+    if segmentation_centering:
+        nuclei_img = deepcopy(reference_img)
+        image_coords = tuple(np.transpose((positions.values()/voxelsize).astype(int)))
 
-    if subsampling>1:
-        #nuclei_img = nd.gaussian_filter(nuclei_img,sigma=subsampling/4.)[::subsampling,::subsampling,::subsampling]
-        nuclei_img = nd.gaussian_filter1d(nd.gaussian_filter1d(nuclei_img,sigma=subsampling/8.,axis=0),sigma=subsampling/8.,axis=1)[::subsampling,::subsampling,:]
-        nuclei_img = SpatialImage(nuclei_img,voxelsize=(subsampling*reference_img.voxelsize[0],subsampling*reference_img.voxelsize[1],reference_img.voxelsize[2]))
-        image_coords = tuple(np.transpose((positions.values()/(microscope_orientation*np.array(nuclei_img.voxelsize))).astype(int)))
+        if subsampling>1:
+            #nuclei_img = nd.gaussian_filter(nuclei_img,sigma=subsampling/4.)[::subsampling,::subsampling,::subsampling]
+            nuclei_img = nd.gaussian_filter1d(nd.gaussian_filter1d(nuclei_img,sigma=subsampling/8.,axis=0),sigma=subsampling/8.,axis=1)[::subsampling,::subsampling,:]
+            nuclei_img = SpatialImage(nuclei_img,voxelsize=(subsampling*reference_img.voxelsize[0],subsampling*reference_img.voxelsize[1],reference_img.voxelsize[2]))
+            image_coords = tuple(np.transpose((positions.values()/(microscope_orientation*np.array(nuclei_img.voxelsize))).astype(int)))
 
-    intensity_min = np.percentile(nuclei_img[image_coords],0)
-    segmented_img = nuclei_active_region_segmentation(nuclei_img, positions, display=False, omega_energies=dict(intensity=subsampling,gradient=1.5,smoothness=10000.0*np.power(subsampling,1.5)), intensity_min=intensity_min)
+        intensity_min = np.percentile(nuclei_img[image_coords],0)-1
+        segmented_img = nuclei_active_region_segmentation(nuclei_img, positions, display=False, omega_energies=dict(intensity=subsampling,gradient=1.5,smoothness=10000.0*np.power(subsampling,1.5)), intensity_min=intensity_min)
 
-    positions = nuclei_positions_from_segmented_image(segmented_img)
-    positions = array_dict(positions)
+        positions = nuclei_positions_from_segmented_image(segmented_img)
+        positions = array_dict(positions)
     positions = array_dict(positions.values()*microscope_orientation,positions.keys()).to_dict()
 
     return positions

@@ -19,6 +19,7 @@
 ###############################################################################
 
 import numpy as np
+import scipy.ndimage as nd
 
 def array_unique(array,return_index=False):
   _,unique_rows = np.unique(np.ascontiguousarray(array).view(np.dtype((np.void,array.dtype.itemsize * array.shape[1]))),return_index=True)
@@ -27,6 +28,19 @@ def array_unique(array,return_index=False):
   else:
     return array[unique_rows]
 
+def gaussian_scale_space(image, sigmas):
+    from scipy.ndimage.filters import gaussian_filter, gaussian_laplace, laplace
+
+    size = np.array(image.shape)
+    voxelsize = np.array(image.voxelsize)
+    scale_space = []
+
+    for sigma in sigmas:
+        print "Sigma : ",sigma/voxelsize
+        gaussian_img = gaussian_filter(np.array(image,np.float64),sigma=sigma/voxelsize,order=0)
+        scale_space += [np.sqrt(sigma)*gaussian_img]
+    
+    return np.array(scale_space)
 
 def scale_space_transform(image, sigmas):
     from scipy.ndimage.filters import gaussian_filter, gaussian_laplace, laplace
@@ -106,11 +120,35 @@ def detect_peaks_3D_scale_space(scale_space_images,sigmas,threshold=None,voxelsi
     end_time = time()
     print "<-- Detecting local peaks      [",end_time-start_time,"s]"
 
-    print np.array(peaks).shape[0]," detected peaks"
-
     return np.array(peaks)
 
-def detect_nuclei(nuclei_img, threshold = 3000., radius_range=(1.8,2.2)):
+
+def detect_nuclei(nuclei_img, threshold = 3000., radius_range=(0.8,1.4), step=0.2):
+    """
+    Detect nuclei positions in a (16-bit) nuclei marker SpatialImage
+    """
+
+    voxelsize = np.array(nuclei_img.voxelsize)
+    size = np.array(nuclei_img.shape)
+
+    sigmas = np.exp(np.linspace(np.log(radius_range[0]),np.log(radius_range[1]),np.ceil(np.log(radius_range[1]/radius_range[0])/step)))
+    
+    scale_space = gaussian_scale_space(nuclei_img,sigmas)
+    
+    peaks = detect_peaks_3D_scale_space(scale_space,sigmas,threshold=threshold,voxelsize=np.array(nuclei_img.voxelsize))
+
+    print peaks.shape[0]," detected peaks"
+
+    peak_scales = dict(zip(np.arange(peaks.shape[0]),sigmas[peaks[:,0]]))
+    print dict(zip(sigmas,[(np.array(peak_scales.values())==s).sum()/float(len(peak_scales)) for s in sigmas]))
+
+    peak_positions = dict(zip(np.arange(peaks.shape[0]),peaks[:,1:]*voxelsize))
+
+    return peak_positions
+
+
+
+def dog_detect_nuclei(nuclei_img, threshold = 3000., radius_range=(1.8,2.2)):
     """
     Detect nuclei positions in a (16-bit) nuclei marker SpatialImage
     """
