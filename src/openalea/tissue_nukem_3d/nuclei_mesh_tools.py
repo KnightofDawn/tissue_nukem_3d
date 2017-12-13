@@ -32,10 +32,11 @@ import pickle
 from openalea.cellcomplex.property_topomesh.property_topomesh_creation import vertex_topomesh, triangle_topomesh
 from openalea.cellcomplex.property_topomesh.property_topomesh_analysis import compute_topomesh_property, compute_topomesh_vertex_property_from_faces
 from openalea.cellcomplex.property_topomesh.property_topomesh_extraction import epidermis_topomesh, topomesh_connected_components, cut_surface_topomesh, clean_topomesh
-from openalea.cellcomplex.property_topomesh.property_topomesh_optimization import property_topomesh_vertices_deformation, topomesh_triangle_split
+from openalea.cellcomplex.property_topomesh.property_topomesh_optimization import property_topomesh_vertices_deformation, topomesh_triangle_split, property_topomesh_isotropic_remeshing
 
 from openalea.cellcomplex.property_topomesh.utils.implicit_surfaces import implicit_surface_topomesh
 from openalea.cellcomplex.property_topomesh.utils.delaunay_tools import delaunay_triangulation
+
 
 
 def nuclei_density_function(nuclei_positions,cell_radius,k=0.1):
@@ -136,10 +137,70 @@ def nuclei_surface_topomesh(nuclei_topomesh, size, voxelsize, cell_radius=5.0, s
 
     return surface_topomesh
 
+def nuclei_image_surface_topomesh(nuclei_img, nuclei_sigma=2., density_voxelsize=1., intensity_threshold=2000., microscope_orientation=1, maximal_length=10., remeshing_iterations=10):
+    voxelsize = np.array(nuclei_img.voxelsize)
+    size = np.array(nuclei_img.shape)
+    subsampling = np.ceil(density_voxelsize/voxelsize).astype(int)
 
+    nuclei_density = nd.gaussian_filter(nuclei_img,nuclei_sigma/voxelsize)/(2.*intensity_threshold)
+    nuclei_density = nuclei_density[::subsampling[0],::subsampling[1],::subsampling[2]]
+
+    pad_shape = np.transpose(np.tile(np.array(nuclei_density.shape)/2,(2,1)))
+    nuclei_density = np.pad(nuclei_density,pad_shape,mode='constant')
+
+    surface_topomesh = implicit_surface_topomesh(nuclei_density,np.array(nuclei_density).shape,microscope_orientation*voxelsize*subsampling,smoothing=50,decimation=100,iso=0.5,center=False)
+    surface_topomesh.update_wisp_property('barycenter',0,array_dict(surface_topomesh.wisp_property('barycenter',0).values() - 0.25*microscope_orientation*voxelsize*subsampling*np.array(nuclei_density.shape),surface_topomesh.wisp_property('barycenter',0).keys()))
+    surface_topomesh = property_topomesh_isotropic_remeshing(surface_topomesh,maximal_length=maximal_length,iterations=remeshing_iterations)
+
+    return surface_topomesh
+
+def up_facing_surface_topomesh(input_surface_topomesh, nuclei_positions, down_facing_threshold=-0., connected=True):
+    positions = array_dict(nuclei_positions)
+    surface_topomesh = deepcopy(input_surface_topomesh)
+    
+    compute_topomesh_property(surface_topomesh,'normal',2,normal_method="density",object_positions=positions)
+    compute_topomesh_vertex_property_from_faces(surface_topomesh,'normal',weighting='area',adjacency_sigma=1.2,neighborhood=3)
+
+    down_facing = surface_topomesh.wisp_property('normal',0).values()[:,2] < down_facing_threshold
+    surface_topomesh.update_wisp_property('downward',0,array_dict(down_facing,keys=list(surface_topomesh.wisps(0))))
+
+    triangle_down_facing = np.any(surface_topomesh.wisp_property('downward',0).values(surface_topomesh.wisp_property('vertices',2).values(list(surface_topomesh.wisps(2)))),axis=1)
+    triangle_down_facing = triangle_down_facing.astype(float)
+    surface_topomesh.update_wisp_property('downward',2,array_dict(triangle_down_facing,keys=list(surface_topomesh.wisps(2))))
+
+    for i,t in enumerate(surface_topomesh.wisps(2)):
+        if surface_topomesh.wisp_property('downward',2)[t] == 1:
+            triangle_neighbors = np.array(list(surface_topomesh.border_neighbors(2,t)),np.uint16)
+            if np.any(surface_topomesh.wisp_property('downward',2).values(triangle_neighbors)==0):
+                triangle_down_facing[i] = 0.5
+    surface_topomesh.update_wisp_property('downward',2,array_dict(triangle_down_facing,keys=list(surface_topomesh.wisps(2))))
+
+    triangles_to_remove = np.array(list(surface_topomesh.wisps(2)))[surface_topomesh.wisp_property('downward',2).values() == 1]
+    for t in triangles_to_remove:
+        surface_topomesh.remove_wisp(2,t)
+        
+    edges_to_remove = np.array(list(surface_topomesh.wisps(1)))[np.array([surface_topomesh.nb_regions(1,e)==0 for e in surface_topomesh.wisps(1)])]
+    for e in edges_to_remove:
+        surface_topomesh.remove_wisp(1,e)
+
+    vertices_to_remove = np.array(list(surface_topomesh.wisps(0)))[np.array([surface_topomesh.nb_regions(0,v)==0 for v in surface_topomesh.wisps(0)])]
+    for v in vertices_to_remove:
+        surface_topomesh.remove_wisp(0,v)
+        
+    #top_surface_topomesh = cut_surface_topomesh(surface_topomesh,z_cut=0.8*size[2]*voxelsize[2])
+    if connected:
+        top_surface_topomesh = topomesh_connected_components(surface_topomesh)[0]
+    else:
+        top_surface_topomesh = surface_topomesh
+
+    return top_surface_topomesh
 
 # def nuclei_layer(nuclei_positions, size, voxelsize, maximal_distance=12., maximal_eccentricity=0.8, return_topomesh=False, display=False):
-def nuclei_layer(nuclei_positions, size, voxelsize, subsampling=4., return_topomesh=False):
+def nuclei_layer(nuclei_positions, nuclei_image, microscope_orientation=1, surface_mode="image", density_voxelsize=1., return_topomesh=False):
+    
+    size = np.array(nuclei_image.shape)
+    voxelsize = microscope_orientation*np.array(nuclei_image.voxelsize)
+
     positions = array_dict(nuclei_positions)
 
     # if display:
@@ -224,46 +285,19 @@ def nuclei_layer(nuclei_positions, size, voxelsize, subsampling=4., return_topom
     #         if np.any(cell_layer.values(list(triangulation_topomesh.region_neighbors(0,c))) == 1):
     #             cell_layer[c] = 2
 
-    grid_voxelsize = np.sign(voxelsize)*subsampling
-    x,y,z = np.ogrid[-0.5*size[0]*voxelsize[0]:1.5*size[0]*voxelsize[0]:grid_voxelsize[0],-0.5*size[1]*voxelsize[1]:1.5*size[1]*voxelsize[1]:grid_voxelsize[1],-0.5*size[2]*voxelsize[2]:1.5*size[2]*voxelsize[2]:grid_voxelsize[2]]
-    grid_size = 2*size
+    if surface_mode == 'density':
+        grid_voxelsize = microscope_orientation*np.ones(3,float)*density_voxelsize
+        x,y,z = np.ogrid[-0.5*size[0]*voxelsize[0]:1.5*size[0]*voxelsize[0]:grid_voxelsize[0],-0.5*size[1]*voxelsize[1]:1.5*size[1]*voxelsize[1]:grid_voxelsize[1],-0.5*size[2]*voxelsize[2]:1.5*size[2]*voxelsize[2]:grid_voxelsize[2]]
+        grid_size = 2*size
 
-    nuclei_density = nuclei_density_function(positions,cell_radius=5,k=1.0)(x,y,z) 
+        nuclei_density = nuclei_density_function(positions,cell_radius=5,k=1.0)(x,y,z) 
 
-    surface_topomesh = implicit_surface_topomesh(nuclei_density,grid_size,voxelsize,iso=0.5,center=False)
-    surface_topomesh.update_wisp_property('barycenter',0,array_dict(surface_topomesh.wisp_property('barycenter',0).values() - 0.5*voxelsize*size,surface_topomesh.wisp_property('barycenter',0).keys()))
+        surface_topomesh = implicit_surface_topomesh(nuclei_density,grid_size,voxelsize,iso=0.5,center=False)
+        surface_topomesh.update_wisp_property('barycenter',0,array_dict(surface_topomesh.wisp_property('barycenter',0).values() - 0.5*voxelsize*size,surface_topomesh.wisp_property('barycenter',0).keys()))
+    elif surface_mode == 'image':
+        surface_topomesh = nuclei_image_surface_topomesh(nuclei_image,microscope_orientation=microscope_orientation,density_voxelsize=density_voxelsize,nuclei_sigma=1,maximal_length=6.,remeshing_iterations=20)
 
-    compute_topomesh_property(surface_topomesh,'normal',2,normal_method="density",object_positions=positions)
-    compute_topomesh_vertex_property_from_faces(surface_topomesh,'normal',weighting='area',adjacency_sigma=1.2,neighborhood=3)
-
-    down_facing = surface_topomesh.wisp_property('normal',0).values()[:,2] < -0.0
-    surface_topomesh.update_wisp_property('downward',0,array_dict(down_facing,keys=list(surface_topomesh.wisps(0))))
-
-    triangle_down_facing = np.any(surface_topomesh.wisp_property('downward',0).values(surface_topomesh.wisp_property('vertices',2).values(list(surface_topomesh.wisps(2)))),axis=1)
-    triangle_down_facing = triangle_down_facing.astype(float)
-    surface_topomesh.update_wisp_property('downward',2,array_dict(triangle_down_facing,keys=list(surface_topomesh.wisps(2))))
-
-    for i,t in enumerate(surface_topomesh.wisps(2)):
-        if surface_topomesh.wisp_property('downward',2)[t] == 1:
-            triangle_neighbors = list(surface_topomesh.border_neighbors(2,t))
-            if np.any(surface_topomesh.wisp_property('downward',2).values(triangle_neighbors)==0):
-                triangle_down_facing[i] = 0.5
-    surface_topomesh.update_wisp_property('downward',2,array_dict(triangle_down_facing,keys=list(surface_topomesh.wisps(2))))
-
-    triangles_to_remove = np.array(list(surface_topomesh.wisps(2)))[surface_topomesh.wisp_property('downward',2).values() == 1]
-    for t in triangles_to_remove:
-        surface_topomesh.remove_wisp(2,t)
-        
-    edges_to_remove = np.array(list(surface_topomesh.wisps(1)))[np.array([surface_topomesh.nb_regions(1,e)==0 for e in surface_topomesh.wisps(1)])]
-    for e in edges_to_remove:
-        surface_topomesh.remove_wisp(1,e)
-
-    vertices_to_remove = np.array(list(surface_topomesh.wisps(0)))[np.array([surface_topomesh.nb_regions(0,v)==0 for v in surface_topomesh.wisps(0)])]
-    for v in vertices_to_remove:
-        surface_topomesh.remove_wisp(0,v)
-        
-    #top_surface_topomesh = cut_surface_topomesh(surface_topomesh,z_cut=0.8*size[2]*voxelsize[2])
-    top_surface_topomesh = topomesh_connected_components(surface_topomesh)[0]
+    top_surface_topomesh = up_facing_surface_topomesh(surface_topomesh,nuclei_positions,connected=True)
     top_surface_topomesh = topomesh_triangle_split(top_surface_topomesh)
 
     #world.add(top_surface_topomesh,'top_surface')
@@ -281,7 +315,7 @@ def nuclei_layer(nuclei_positions, size, voxelsize, subsampling=4., return_topom
     if return_topomesh:
         # triangulation_topomesh.update_wisp_property('layer',0,cell_layer)
         # return cell_layer, triangulation_topomesh, surface_topomesh
-        return cell_layer, surface_topomesh
+        return cell_layer, top_surface_topomesh
     else:
         return cell_layer
 

@@ -66,13 +66,14 @@ def nuclei_detection(reference_img, threshold=1000, radius_range=(0.8,1.4), step
         segmented_img = nuclei_active_region_segmentation(nuclei_img, positions, display=False, omega_energies=dict(intensity=subsampling,gradient=1.5,smoothness=10000.0*np.power(subsampling,1.5)), intensity_min=intensity_min)
 
         positions = nuclei_positions_from_segmented_image(segmented_img)
-        positions = array_dict(positions)
+    
+    positions = array_dict(positions)
     positions = array_dict(positions.values()*microscope_orientation,positions.keys()).to_dict()
 
     return positions
 
 
-def nuclei_image_topomesh(image_dict, reference_name='TagBFP', signal_names=['DIIV','CLV3'], compute_ratios=[True,False], microscope_orientation=1, radius_range=(0.8,1.4), threshold=1000, subsampling=4, surface_subsampling=6, nuclei_sigma=2.0, compute_layer=True, compute_curvature=True, return_surface=False):
+def nuclei_image_topomesh(image_dict, reference_name='TagBFP', signal_names=['DIIV','CLV3'], compute_ratios=[True,False], microscope_orientation=1, radius_range=(0.8,1.4), threshold=1000, subsampling=4, surface_voxelsize=1, nuclei_sigma=2.0, compute_layer=True, surface_mode='image', compute_curvature=True, return_surface=False):
     """Compute a point cloud PropertyTopomesh with image nuclei.
 
     The function runs a nuclei detection on the reference channel of
@@ -155,7 +156,8 @@ def nuclei_image_topomesh(image_dict, reference_name='TagBFP', signal_names=['DI
     for signal_name in signal_names:
         topomesh.update_wisp_property(signal_name,0,signal_values[signal_name])
     
-    cell_layer, surface_topomesh = nuclei_layer(positions,size,voxelsize,subsampling=surface_subsampling,return_topomesh=True) 
+    # cell_layer, surface_topomesh = nuclei_layer(positions,reference_img,microscope_orientation=microscope_orientation,density_voxelsize=surface_voxelsize,return_topomesh=True) 
+    cell_layer, surface_topomesh = nuclei_layer(positions,reference_img,microscope_orientation=microscope_orientation,density_voxelsize=surface_voxelsize,surface_mode=surface_mode,return_topomesh=True) 
     # cell_layer, surface_topomesh = nuclei_layer(positions,size,np.array(reference_img.voxelsize),return_topomesh=True) 
     topomesh.update_wisp_property('layer',0,cell_layer)
 
