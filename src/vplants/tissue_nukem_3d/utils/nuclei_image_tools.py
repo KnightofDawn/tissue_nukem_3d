@@ -23,7 +23,7 @@ import pandas as pd
 
 import scipy.ndimage as nd
 
-from openalea.tissue_nukem_3d.epidermal_maps import compute_local_2d_signal
+from vplants.tissue_nukem_3d.epidermal_maps import compute_local_2d_signal
 
 def image_layer_slices(positions, images, microscope_orientation=1):
 

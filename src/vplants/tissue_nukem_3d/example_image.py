@@ -21,10 +21,10 @@ import numpy as np
 
 from scipy.cluster.vq import vq
 
-from openalea.image.spatial_image import SpatialImage
-from openalea.container import array_dict
+from vplants.image.spatial_image import SpatialImage
+from vplants.container import array_dict
 
-from openalea.tissue_nukem_3d.nuclei_mesh_tools import nuclei_density_function
+from vplants.tissue_nukem_3d.nuclei_mesh_tools import nuclei_density_function
 
 def point_position_optimization(points, omega_forces=dict(distance=1,repulsion=1), target_distance=1, sigma_deformation=0.1, n_iterations=100, force_centering=True, center=np.zeros(3)):
 

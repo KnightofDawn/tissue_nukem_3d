@@ -20,14 +20,14 @@
 import numpy as np
 from scipy.cluster.vq import vq
 
-from openalea.tissue_nukem_3d.example_image import example_nuclei_image, example_nuclei_signal_images
+from vplants.tissue_nukem_3d.example_image import example_nuclei_image, example_nuclei_signal_images
 
 def test_topomesh():
     n_points = 12
     nuclei_radius = 1.5
     img, signal_img, img_nuclei, img_signals = example_nuclei_signal_images(n_points=n_points,size=20,nuclei_radius=nuclei_radius,signal_type='random',return_points=True,return_signals=True)
 
-    from openalea.tissue_nukem_3d.nuclei_image_topomesh import nuclei_image_topomesh
+    from vplants.tissue_nukem_3d.nuclei_image_topomesh import nuclei_image_topomesh
 
     image_dict = dict(tag=img, sig=signal_img)
     topomesh = nuclei_image_topomesh(image_dict,reference_name='tag',signal_names=['sig'], compute_ratios=[True], microscope_orientation=1, threshold=1, subsampling=2)

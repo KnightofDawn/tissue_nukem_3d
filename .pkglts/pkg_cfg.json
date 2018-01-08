@@ -12,13 +12,13 @@
         "guillaume.cerutti@inria.fr"
       ]
     ], 
-    "namespace": "openalea", 
+    "namespace": "vplants", 
     "pkgname": "tissue_nukem_3d", 
     "url": null
   }, 
   "coverage": {}, 
   "doc": {
-    "description": "An OpenAlea library for the detection and quantitative data extraction from microscopy images of cell nuclei", 
+    "description": "An library for the detection and quantitative data extraction from microscopy images of cell nuclei", 
     "keywords": []
   }, 
   "github": {
@@ -28,7 +28,7 @@
   }, 
   "license": {
     "name": "cecill-c", 
-    "organization": "openalea", 
+    "organization": "vplants", 
     "project": "{{ base.pkgname }}", 
     "year": 2017
   }, 

@@ -2,7 +2,7 @@ import matplotlib as mpl
 from matplotlib import cm
 import numpy as np
 
-from openalea.oalab.colormap.colormap_def import load_colormaps
+from vplants.oalab.colormap.colormap_def import load_colormaps
 
 primordia_colors = {}
 primordia_colors[-3] = "#333333"

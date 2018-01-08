@@ -1,7 +1,7 @@
 import numpy as np
 
-from openalea.image.spatial_image import SpatialImage
-from openalea.image.serial.all import imsave
+from vplants.image.spatial_image import SpatialImage
+from vplants.image.serial.all import imsave
 
 import os
 
@@ -112,7 +112,7 @@ def export_microscopy_image_as_inr(image_file, channel_names=None, saving_direct
 
 
 def imread(image_file, channel_names=None):
-    from openalea.image.serial.all import imread as oa_imread
+    from vplants.image.serial.all import imread as oa_imread
 
     if image_file.split('.')[-1] == 'lsm':
         return read_lsm_image(image_file,channel_names)

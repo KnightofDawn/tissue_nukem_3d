@@ -20,14 +20,14 @@
 import numpy as np
 from scipy.cluster.vq import vq
 
-from openalea.tissue_nukem_3d.example_image import example_nuclei_image, example_nuclei_signal_images
+from vplants.tissue_nukem_3d.example_image import example_nuclei_image, example_nuclei_signal_images
 
 def test_detection():
 	n_points = 10
 	nuclei_radius = 1.5
 	img = example_nuclei_image(n_points=n_points,size=15,nuclei_radius=nuclei_radius)
 
-	from openalea.tissue_nukem_3d.nuclei_detection import detect_nuclei
+	from vplants.tissue_nukem_3d.nuclei_detection import detect_nuclei
 
 	pos = detect_nuclei(img,threshold=1)
 
@@ -38,9 +38,9 @@ def test_segmentation():
 	nuclei_radius = 1.5
 	img, img_nuclei = example_nuclei_image(n_points=n_points,size=15,nuclei_radius=nuclei_radius,return_points=True)
 
-	from openalea.tissue_nukem_3d.nuclei_image_topomesh import nuclei_detection
-	from openalea.tissue_nukem_3d.nuclei_segmentation import nuclei_positions_from_segmented_image
-	from openalea.image.spatial_image import SpatialImage
+	from vplants.tissue_nukem_3d.nuclei_image_topomesh import nuclei_detection
+	from vplants.tissue_nukem_3d.nuclei_segmentation import nuclei_positions_from_segmented_image
+	from vplants.image.spatial_image import SpatialImage
 
 	pos = nuclei_detection(img,threshold=1,subsampling=1)
 
@@ -55,8 +55,8 @@ def test_quantification():
 	nuclei_radius = 1.5
 	img, signal_img, img_nuclei, img_signals = example_nuclei_signal_images(n_points=n_points,size=15,nuclei_radius=nuclei_radius,signal_type='random',return_points=True,return_signals=True)
 
-	from openalea.tissue_nukem_3d.nuclei_detection import compute_fluorescence_ratios
-	from openalea.tissue_nukem_3d.nuclei_image_topomesh import nuclei_detection
+	from vplants.tissue_nukem_3d.nuclei_detection import compute_fluorescence_ratios
+	from vplants.tissue_nukem_3d.nuclei_image_topomesh import nuclei_detection
 
 	pos = nuclei_detection(img,threshold=1,subsampling=1)
 

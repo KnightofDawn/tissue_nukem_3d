@@ -12,14 +12,14 @@ readme = open('README.rst').read()
 history = open('HISTORY.rst').read().replace('.. :changelog:', '')
 
 
-# find version number in src/openalea/tissue_nukem_3d/version.py
+# find version number in src/vplants/tissue_nukem_3d/version.py
 version = {}
-with open("src/openalea/tissue_nukem_3d/version.py") as fp:
+with open("src/vplants/tissue_nukem_3d/version.py") as fp:
     exec(fp.read(), version)
 
 
 setup_kwds = dict(
-    name='openalea.tissue_nukem_3d',
+    name='vplants.tissue_nukem_3d',
     version=version["__version__"],
     description=short_descr,
     long_description=readme + '\n\n' + history,

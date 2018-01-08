@@ -21,22 +21,23 @@
 import numpy as np
 import scipy.ndimage as nd
 
-from openalea.container import array_dict
+from vplants.container import array_dict
 
 from copy import deepcopy
 import pickle
 
-# from openalea.draco_stem.draco.adjacency_complex_optimization import delaunay_tetrahedrization_topomesh, tetrahedrization_clean_surface
-# from openalea.draco_stem.draco.dual_reconstruction import topomesh_triangle_split
+# from vplants.draco_stem.draco.adjacency_complex_optimization import delaunay_tetrahedrization_topomesh, tetrahedrization_clean_surface
+# from vplants.draco_stem.draco.dual_reconstruction import topomesh_triangle_split
 
-from openalea.cellcomplex.property_topomesh.property_topomesh_creation import vertex_topomesh, triangle_topomesh
-from openalea.cellcomplex.property_topomesh.property_topomesh_analysis import compute_topomesh_property, compute_topomesh_vertex_property_from_faces
-from openalea.cellcomplex.property_topomesh.property_topomesh_extraction import epidermis_topomesh, topomesh_connected_components, cut_surface_topomesh, clean_topomesh
-from openalea.cellcomplex.property_topomesh.property_topomesh_optimization import property_topomesh_vertices_deformation, topomesh_triangle_split, property_topomesh_isotropic_remeshing
+from vplants.cellcomplex.property_topomesh.property_topomesh_creation import vertex_topomesh, triangle_topomesh
+from vplants.cellcomplex.property_topomesh.property_topomesh_analysis import compute_topomesh_property, compute_topomesh_vertex_property_from_faces
+from vplants.cellcomplex.property_topomesh.property_topomesh_extraction import epidermis_topomesh, topomesh_connected_components, cut_surface_topomesh, clean_topomesh
+from vplants.cellcomplex.property_topomesh.property_topomesh_optimization import property_topomesh_vertices_deformation, topomesh_triangle_split, property_topomesh_isotropic_remeshing
 
-from openalea.cellcomplex.property_topomesh.utils.implicit_surfaces import implicit_surface_topomesh
-from openalea.cellcomplex.property_topomesh.utils.delaunay_tools import delaunay_triangulation
-from openalea.cellcomplex.property_topomesh.utils.array_tools import array_unique
+
+from vplants.cellcomplex.property_topomesh.utils.implicit_surfaces import implicit_surface_topomesh
+from vplants.cellcomplex.property_topomesh.utils.delaunay_tools import delaunay_triangulation
+from vplants.cellcomplex.property_topomesh.utils.array_tools import array_unique
 
 
 
@@ -238,7 +239,7 @@ def nuclei_layer(nuclei_positions, nuclei_image, microscope_orientation=1, surfa
     positions = array_dict(nuclei_positions)
 
     # if display:
-    #     from openalea.core.world import World
+    #     from vplants.core.world import World
     #     world = World()
 
 

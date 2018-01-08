@@ -2,7 +2,7 @@ import numpy as np
 import bioformats
 import javabridge
 
-from openalea.image.spatial_image import SpatialImage
+from vplants.image.spatial_image import SpatialImage
 from bioformats.omexml import get_int_attr, get_float_attr
 
 import sys  

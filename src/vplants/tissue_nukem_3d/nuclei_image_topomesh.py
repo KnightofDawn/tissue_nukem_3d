@@ -21,23 +21,23 @@
 import numpy as np
 import scipy.ndimage as nd
 
-from openalea.tissue_nukem_3d.nuclei_detection import detect_nuclei, compute_fluorescence_ratios
-from openalea.tissue_nukem_3d.nuclei_segmentation import nuclei_active_region_segmentation, nuclei_positions_from_segmented_image
-from openalea.tissue_nukem_3d.nuclei_mesh_tools import nuclei_layer, nuclei_curvature, nuclei_topomesh_curvature, nuclei_density_function
+from vplants.tissue_nukem_3d.nuclei_detection import detect_nuclei, compute_fluorescence_ratios
+from vplants.tissue_nukem_3d.nuclei_segmentation import nuclei_active_region_segmentation, nuclei_positions_from_segmented_image
+from vplants.tissue_nukem_3d.nuclei_mesh_tools import nuclei_layer, nuclei_curvature, nuclei_topomesh_curvature, nuclei_density_function
         
-from openalea.container import array_dict
+from vplants.container import array_dict
 
-from openalea.mesh.property_topomesh_analysis import compute_topomesh_property, compute_topomesh_vertex_property_from_faces
-from openalea.mesh.property_topomesh_creation import vertex_topomesh, triangle_topomesh
-from openalea.mesh.property_topomesh_extraction import epidermis_topomesh, topomesh_connected_components, cut_surface_topomesh, clean_topomesh
-from openalea.mesh.property_topomesh_io import save_ply_property_topomesh, read_ply_property_topomesh
-from openalea.mesh.property_topomesh_optimization import property_topomesh_vertices_deformation, topomesh_triangle_split
-from openalea.mesh.utils.implicit_surfaces import implicit_surface_topomesh
-from openalea.mesh.utils.pandas_tools import topomesh_to_dataframe
-from openalea.mesh.utils.delaunay_tools import delaunay_triangulation
+from vplants.cellcomplex.property_topomesh.property_topomesh_analysis import compute_topomesh_property, compute_topomesh_vertex_property_from_faces
+from vplants.cellcomplex.property_topomesh.property_topomesh_creation import vertex_topomesh, triangle_topomesh
+from vplants.cellcomplex.property_topomesh.property_topomesh_extraction import epidermis_topomesh, topomesh_connected_components, cut_surface_topomesh, clean_topomesh
+from vplants.cellcomplex.property_topomesh.property_topomesh_io import save_ply_property_topomesh, read_ply_property_topomesh
+from vplants.cellcomplex.property_topomesh.property_topomesh_optimization import property_topomesh_vertices_deformation, topomesh_triangle_split
+from vplants.cellcomplex.property_topomesh.utils.implicit_surfaces import implicit_surface_topomesh
+from vplants.cellcomplex.property_topomesh.utils.pandas_tools import topomesh_to_dataframe
+from vplants.cellcomplex.property_topomesh.utils.delaunay_tools import delaunay_triangulation
 
-from openalea.image.serial.all import imread, imsave
-from openalea.image.spatial_image import SpatialImage
+from vplants.image.serial.all import imread, imsave
+from vplants.image.spatial_image import SpatialImage
 
 from copy import deepcopy
 
@@ -191,9 +191,9 @@ def nuclei_image_topomesh(image_dict, reference_name='TagBFP', signal_names=['DI
 #     '''
 
 #     if dirname is None:
-#         from openalea.deploy.shared_data import shared_data
-#         import vplants.meshing_data
-#         dirname = shared_data(vplants.meshing_data)+"/nuclei_images"
+#         from vplants.deploy.shared_data import shared_data
+#         import vplants.cellcomplex.property_topomeshing_data
+#         dirname = shared_data(vplants.cellcomplex.property_topomeshing_data)+"/nuclei_images"
 
 #     reference_file = dirname+"/"+filename+"/"+filename+"_"+reference_name+".inr.gz"
 #     reference_img = imread(reference_file)
