@@ -36,6 +36,7 @@ from openalea.cellcomplex.property_topomesh.property_topomesh_optimization impor
 
 from openalea.cellcomplex.property_topomesh.utils.implicit_surfaces import implicit_surface_topomesh
 from openalea.cellcomplex.property_topomesh.utils.delaunay_tools import delaunay_triangulation
+from openalea.cellcomplex.property_topomesh.utils.array_tools import array_unique
 
 
 
@@ -137,28 +138,60 @@ def nuclei_surface_topomesh(nuclei_topomesh, size, voxelsize, cell_radius=5.0, s
 
     return surface_topomesh
 
-def nuclei_image_surface_topomesh(nuclei_img, nuclei_sigma=2., density_voxelsize=1., intensity_threshold=2000., microscope_orientation=1, maximal_length=10., remeshing_iterations=10):
+
+def spherical_structuring_element(radius=1.0, voxelsize=(1.,1.,1.)):
+    neighborhood = np.array(np.ceil(radius/np.array(voxelsize)),int)
+    structuring_element = np.zeros(tuple(2*neighborhood+1),np.uint8)
+
+    neighborhood_coords = np.mgrid[-neighborhood[0]:neighborhood[0]+1,-neighborhood[1]:neighborhood[1]+1,-neighborhood[2]:neighborhood[2]+1]
+    neighborhood_coords = np.concatenate(np.concatenate(np.transpose(neighborhood_coords,(1,2,3,0)))) + neighborhood
+    neighborhood_coords = array_unique(neighborhood_coords)
+        
+    neighborhood_distance = np.linalg.norm(neighborhood_coords*voxelsize - neighborhood*voxelsize,axis=1)
+    neighborhood_coords = neighborhood_coords[neighborhood_distance<=radius]
+    neighborhood_coords = tuple(np.transpose(neighborhood_coords))
+    structuring_element[neighborhood_coords] = 1
+
+    return structuring_element
+
+
+def nuclei_image_surface_topomesh(nuclei_img, nuclei_sigma=2., density_voxelsize=1., intensity_threshold=2000., microscope_orientation=1, maximal_length=10., remeshing_iterations=10, erosion_radius=0.0):
     voxelsize = np.array(nuclei_img.voxelsize)
     size = np.array(nuclei_img.shape)
     subsampling = np.ceil(density_voxelsize/voxelsize).astype(int)
 
-    nuclei_density = nd.gaussian_filter(nuclei_img,nuclei_sigma/voxelsize)/(2.*intensity_threshold)
+    # nuclei_density = nd.gaussian_filter(nuclei_img,nuclei_sigma/voxelsize)/(2.*intensity_threshold)
+    nuclei_density = (nd.gaussian_filter(nuclei_img,nuclei_sigma/voxelsize) > (2.*intensity_threshold)).astype(np.uint8)
     nuclei_density = nuclei_density[::subsampling[0],::subsampling[1],::subsampling[2]]
 
     pad_shape = np.transpose(np.tile(np.array(nuclei_density.shape)/2,(2,1)))
     nuclei_density = np.pad(nuclei_density,pad_shape,mode='constant')
 
+    if erosion_radius>0:
+            structuring_element = spherical_structuring_element(erosion_radius,voxelsize*subsampling)
+            nuclei_density = nd.binary_erosion(nuclei_density,structuring_element).astype(np.uint8)
+
     surface_topomesh = implicit_surface_topomesh(nuclei_density,np.array(nuclei_density).shape,microscope_orientation*voxelsize*subsampling,smoothing=50,decimation=100,iso=0.5,center=False)
     surface_topomesh.update_wisp_property('barycenter',0,array_dict(surface_topomesh.wisp_property('barycenter',0).values() - 0.25*microscope_orientation*voxelsize*subsampling*np.array(nuclei_density.shape),surface_topomesh.wisp_property('barycenter',0).keys()))
-    surface_topomesh = property_topomesh_isotropic_remeshing(surface_topomesh,maximal_length=maximal_length,iterations=remeshing_iterations)
+    
+    if remeshing_iterations>0:
+        surface_topomesh = property_topomesh_isotropic_remeshing(surface_topomesh,maximal_length=maximal_length,iterations=remeshing_iterations)
 
     return surface_topomesh
 
-def up_facing_surface_topomesh(input_surface_topomesh, nuclei_positions, down_facing_threshold=-0., connected=True):
-    positions = array_dict(nuclei_positions)
+
+def up_facing_surface_topomesh(input_surface_topomesh, normal_method='density', nuclei_positions=None, down_facing_threshold=-0., connected=True):
+    
+    assert (normal_method != 'density') or (nuclei_positions is not None)
+
+    if nuclei_positions is not None:
+        positions = array_dict(nuclei_positions)
+    else:
+        positions = None
+
     surface_topomesh = deepcopy(input_surface_topomesh)
     
-    compute_topomesh_property(surface_topomesh,'normal',2,normal_method="density",object_positions=positions)
+    compute_topomesh_property(surface_topomesh,'normal',2,normal_method=normal_method,object_positions=positions)
     compute_topomesh_vertex_property_from_faces(surface_topomesh,'normal',weighting='area',adjacency_sigma=1.2,neighborhood=3)
 
     down_facing = surface_topomesh.wisp_property('normal',0).values()[:,2] < down_facing_threshold
