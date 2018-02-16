@@ -30,7 +30,7 @@ def test_topomesh():
     from vplants.tissue_nukem_3d.nuclei_image_topomesh import nuclei_image_topomesh
 
     image_dict = dict(tag=img, sig=signal_img)
-    topomesh = nuclei_image_topomesh(image_dict,reference_name='tag',signal_names=['sig'], compute_ratios=[True], microscope_orientation=1, threshold=1, subsampling=2)
+    topomesh = nuclei_image_topomesh(image_dict,reference_name='tag',signal_names=['sig'], compute_ratios=[True], microscope_orientation=1, threshold=1, subsampling=2, surface_mode='density')
     
     assert topomesh.nb_wisps(0) == n_points
 

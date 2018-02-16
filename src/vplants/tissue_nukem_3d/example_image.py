@@ -53,7 +53,7 @@ def point_position_optimization(points, omega_forces=dict(distance=1,repulsion=1
 
 
 def example_nuclei_image(n_points=100,size=50,voxelsize=(0.25,0.25,0.5),nuclei_radius=1.5,return_points=False):
-    size = [size/v for v in voxelsize]
+    size = [int(size/v) for v in voxelsize]
 
     img = np.zeros(tuple(size))
 
@@ -83,7 +83,7 @@ def example_nuclei_image(n_points=100,size=50,voxelsize=(0.25,0.25,0.5),nuclei_r
 
 def example_nuclei_signal_images(n_points=100,size=50,voxelsize=(0.25,0.25,0.5),nuclei_radius=1.5,signal_type='random',return_points=False,return_signals=False):
     original_size = size
-    size = [size/v for v in voxelsize]
+    size = [int(size/v) for v in voxelsize]
 
     img = np.zeros(tuple(size))
 
