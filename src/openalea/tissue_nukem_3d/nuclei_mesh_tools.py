@@ -183,6 +183,7 @@ def nuclei_image_surface_topomesh(nuclei_img, nuclei_sigma=2., density_voxelsize
 def up_facing_surface_topomesh(input_surface_topomesh, normal_method='density', nuclei_positions=None, down_facing_threshold=-0., connected=True):
     
     assert (normal_method != 'density') or (nuclei_positions is not None)
+    assert normal_method in ['density','orientation']
 
     if nuclei_positions is not None:
         positions = array_dict(nuclei_positions)
@@ -330,7 +331,7 @@ def nuclei_layer(nuclei_positions, nuclei_image, microscope_orientation=1, surfa
     elif surface_mode == 'image':
         surface_topomesh = nuclei_image_surface_topomesh(nuclei_image,microscope_orientation=microscope_orientation,density_voxelsize=density_voxelsize,nuclei_sigma=1,maximal_length=6.,remeshing_iterations=20)
 
-    top_surface_topomesh = up_facing_surface_topomesh(surface_topomesh,nuclei_positions,connected=True)
+    top_surface_topomesh = up_facing_surface_topomesh(surface_topomesh,nuclei_positions=nuclei_positions,connected=True)
     top_surface_topomesh = topomesh_triangle_split(top_surface_topomesh)
 
     #world.add(top_surface_topomesh,'top_surface')
