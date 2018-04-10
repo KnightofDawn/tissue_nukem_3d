@@ -52,7 +52,7 @@ def point_position_optimization(points, omega_forces=dict(distance=1,repulsion=1
     return points
 
 
-def example_nuclei_image(n_points=100,size=50,voxelsize=(0.25,0.25,0.5),nuclei_radius=1.5,return_points=False):
+def example_nuclei_image(n_points=100,size=50,voxelsize=(0.25,0.25,0.5),nuclei_radius=1.5,nuclei_intensity=10000.,return_points=False):
     size = [size/v for v in voxelsize]
 
     img = np.zeros(tuple(size))
@@ -71,7 +71,7 @@ def example_nuclei_image(n_points=100,size=50,voxelsize=(0.25,0.25,0.5),nuclei_r
 
     x,y,z = np.ogrid[0:size[0]*voxelsize[0]:voxelsize[0],0:size[1]*voxelsize[1]:voxelsize[1],0:size[2]*voxelsize[2]:voxelsize[2]]
 
-    img = (255.*nuclei_density_function(points,nuclei_radius,2./nuclei_radius)(x,y,z)).astype(np.uint16)
+    img = (nuclei_intensity*nuclei_density_function(points,nuclei_radius,2./nuclei_radius)(x,y,z)).astype(np.uint16)
 
     _return = (SpatialImage(img,voxelsize=voxelsize),)
     if return_points:
@@ -81,7 +81,7 @@ def example_nuclei_image(n_points=100,size=50,voxelsize=(0.25,0.25,0.5),nuclei_r
         return _return[0]
     return _return
 
-def example_nuclei_signal_images(n_points=100,size=50,voxelsize=(0.25,0.25,0.5),nuclei_radius=1.5,signal_type='random',return_points=False,return_signals=False):
+def example_nuclei_signal_images(n_points=100,size=50,voxelsize=(0.25,0.25,0.5),nuclei_radius=1.5,signal_type='random',signal_intensity=10000.,return_points=False,return_signals=False):
     original_size = size
     size = [size/v for v in voxelsize]
 
@@ -101,7 +101,7 @@ def example_nuclei_signal_images(n_points=100,size=50,voxelsize=(0.25,0.25,0.5),
 
     x,y,z = np.ogrid[0:size[0]*voxelsize[0]:voxelsize[0],0:size[1]*voxelsize[1]:voxelsize[1],0:size[2]*voxelsize[2]:voxelsize[2]]
 
-    img = (255.*nuclei_density_function(points,nuclei_radius,2./nuclei_radius)(x,y,z)).astype(np.uint16)
+    img = (signal_intensity*nuclei_density_function(points,nuclei_radius,2./nuclei_radius)(x,y,z)).astype(np.uint16)
 
     if signal_type == 'random':
         point_signals = dict([(p,np.random.rand()) for p in points.keys()])
@@ -111,7 +111,7 @@ def example_nuclei_signal_images(n_points=100,size=50,voxelsize=(0.25,0.25,0.5),
     signal_img = np.zeros_like(img).astype(float)
     for p in points.keys():
         point_img = nuclei_density_function(dict([(p,points[p])]),nuclei_radius,2./nuclei_radius)(x,y,z)
-        signal_img += 255.*point_signals[p]*point_img
+        signal_img += signal_intensity*point_signals[p]*point_img
     signal_img = signal_img.astype(np.uint16)
 
     _return = (SpatialImage(img,voxelsize=voxelsize), SpatialImage(signal_img,voxelsize=voxelsize),)

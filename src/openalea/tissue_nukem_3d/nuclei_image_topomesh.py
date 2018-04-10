@@ -166,19 +166,19 @@ def nuclei_image_topomesh(image_dict, reference_name='TagBFP', signal_names=['DI
         # triangulation_topomesh = nuclei_topomesh_curvature(topomesh,surface_subdivision=0,return_topomesh=True)
         topomesh = nuclei_surface_topomesh_curvature(topomesh,surface_topomesh=surface_topomesh)
 
-        from copy import deepcopy
-        topomesh._borders[1] = deepcopy(triangulation_topomesh._borders[1])
-        topomesh._regions[0] = deepcopy(triangulation_topomesh._regions[0])
-        for v in cell_layer.keys():
-            if not v in topomesh._regions[0]:
-                topomesh._regions[0][v] = []
-        topomesh._borders[2] = deepcopy(triangulation_topomesh._borders[2])
-        topomesh._regions[1] = deepcopy(triangulation_topomesh._regions[1])
-        for t in topomesh.wisps(2):
-            topomesh._regions[2][t] = []
-        topomesh.add_wisps(3,0)
-        for t in topomesh.wisps(2):
-            topomesh.link(3,0,t)
+        # from copy import deepcopy
+        # topomesh._borders[1] = deepcopy(triangulation_topomesh._borders[1])
+        # topomesh._regions[0] = deepcopy(triangulation_topomesh._regions[0])
+        # for v in cell_layer.keys():
+        #     if not v in topomesh._regions[0]:
+        #         topomesh._regions[0][v] = []
+        # topomesh._borders[2] = deepcopy(triangulation_topomesh._borders[2])
+        # topomesh._regions[1] = deepcopy(triangulation_topomesh._regions[1])
+        # for t in topomesh.wisps(2):
+        #     topomesh._regions[2][t] = []
+        # topomesh.add_wisps(3,0)
+        # for t in topomesh.wisps(2):
+        #     topomesh.link(3,0,t)
 
     if return_surface:
         return topomesh, surface_topomesh
