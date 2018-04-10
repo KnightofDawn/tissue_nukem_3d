@@ -23,7 +23,7 @@ import scipy.ndimage as nd
 
 from openalea.tissue_nukem_3d.nuclei_detection import detect_nuclei, compute_fluorescence_ratios
 from openalea.tissue_nukem_3d.nuclei_segmentation import nuclei_active_region_segmentation, nuclei_positions_from_segmented_image
-from openalea.tissue_nukem_3d.nuclei_mesh_tools import nuclei_layer, nuclei_curvature, nuclei_topomesh_curvature, nuclei_density_function
+from openalea.tissue_nukem_3d.nuclei_mesh_tools import nuclei_layer, nuclei_curvature, nuclei_topomesh_curvature, nuclei_surface_topomesh_curvature, nuclei_density_function
         
 from openalea.container import array_dict
 
@@ -161,9 +161,10 @@ def nuclei_image_topomesh(image_dict, reference_name='TagBFP', signal_names=['DI
     # cell_layer, surface_topomesh = nuclei_layer(positions,size,np.array(reference_img.voxelsize),return_topomesh=True) 
     topomesh.update_wisp_property('layer',0,cell_layer)
 
-    compute_curvature = False
+    # compute_curvature = False
     if compute_curvature:
-        triangulation_topomesh = nuclei_topomesh_curvature(topomesh,surface_subdivision=0,return_topomesh=True)
+        # triangulation_topomesh = nuclei_topomesh_curvature(topomesh,surface_subdivision=0,return_topomesh=True)
+        topomesh = nuclei_surface_topomesh_curvature(topomesh,surface_topomesh=surface_topomesh)
 
         from copy import deepcopy
         topomesh._borders[1] = deepcopy(triangulation_topomesh._borders[1])

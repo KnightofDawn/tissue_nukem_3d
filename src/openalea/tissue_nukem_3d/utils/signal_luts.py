@@ -15,10 +15,40 @@ primordia_colors[3] = "#cccccc"
 primordia_colors[4] = "#dddddd"
 primordia_colors[5] = "#eeeeee"
 
+primordia_colors = {}
+primordia_colors[-3] = "#8b008b"
+primordia_colors[-2] = "#ee82ee"
+primordia_colors[-1] = "#6495ed"
+primordia_colors[0] = "#98f5ff"
+primordia_colors[1] = "#76ee00"
+primordia_colors[2] = "#ffd700"
+primordia_colors[3] = "#ffa500"
+primordia_colors[4] = "#cd2626" 
+primordia_colors[5] = "#8b0000"
+primordia_colors[6] = "#730000"
+primordia_colors[7] = "#590000"
+primordia_colors[8] = "#400000"
+primordia_colors[9] = "#260000"
+primordia_colors[10] = "#0d0000"
+primordia_colors[11] = "#000000"
+primordia_colors[12] = "#000000"
+primordia_colors[13] = "#000000"
+primordia_colors[14] = "#000000"
+# primordia_colors[6] = "#8b008b"
+# primordia_colors[7] = "#ee82ee"
+# primordia_colors[8] = "#6495ed"
+# primordia_colors[9] = "#98f5ff"
+# primordia_colors[10] = "#76ee00"
+# primordia_colors[11] = "#ffd700"
+# primordia_colors[12] = "#ffa500"
+# primordia_colors[13] = "#cd2626" 
+# primordia_colors[14] = "#8b0000"
+
+
 clv3_color = "#c94389"
 
 cmaps = {}
-for cmap_name in ['1Flashy_green','1Flashy_purple','1Flashy_orange','1Flashy_turquoise','1Flashy_red','geo_jet','curvature']:
+for cmap_name in ['1Flashy_green','1Flashy_purple','1Flashy_orange','1Flashy_lemon','1Flashy_turquoise','1Flashy_red','1Flashy_blue','1Flashy_yellow','geo_jet','curvature','cyan_hot','lemon_hot','magenta_hot']:
     cmap = load_colormaps()[cmap_name]
 
     color_dict = dict(red=[],green=[],blue=[])
@@ -38,23 +68,27 @@ for cmap_name in ['1Flashy_green','1Flashy_purple','1Flashy_orange','1Flashy_tur
     cm.register_cmap(cmap_name+"_r",mpl.colors.LinearSegmentedColormap(cmap.name+"_r", color_dict))
 
 signal_ranges= {}
-signal_ranges['DIIV'] = (1000,10000)
+# signal_ranges['DIIV'] = (1000,10000)
+signal_ranges['DIIV'] = (500,20000)
 signal_ranges['Normalized_DIIV'] = (0,1)
 signal_ranges['qDII'] = (0,1.0)
+signal_ranges['Normalized_qDII'] = (0,1.5)
 signal_ranges['Auxin'] = (-0.5,1.0)
 signal_ranges['Normalized_Auxin'] = (-1.0,2.0)
 signal_ranges['DR5'] = (0,25000)
 signal_ranges['AHP6'] = (0,10000)
-signal_ranges['CLV3'] = (0,20000)
+signal_ranges['CLV3'] = (0,30000)
 signal_ranges['TagBFP'] = (0,15000)
 signal_ranges['tdT'] = (0,20000)
 signal_ranges['PIN1'] = (1000,60000)
 signal_ranges['PI'] = (0,15000)
 signal_ranges['gaussian_curvature'] = (-0.0005,0.0005)
+signal_ranges['aligned_z'] = (-50,10)
 signal_ranges['nuclei_distance'] = (0,15)
 signal_ranges['surface_distance'] = (0,100)
 signal_ranges['sam_id'] = (0,30)
 signal_ranges['next_relative_surfacic_growth'] = (0.9,1.3)
+
 
 channel_ranges= {}
 channel_ranges['DIIV'] = (2000,10000)
@@ -66,10 +100,12 @@ channel_ranges['PIN1'] = (2000,50000)
 channel_ranges['PI'] = (1000,30000)
 
 signal_lut_ranges= {}
-signal_lut_ranges['CLV3'] = (0,10000)
-signal_lut_ranges['DIIV'] = (500,6000)
+signal_lut_ranges['CLV3'] = (0,20000)
+# signal_lut_ranges['DIIV'] = (500,6000)
+signal_lut_ranges['DIIV'] = (500,20000)
 signal_lut_ranges['Normalized_DIIV'] = (0,1)
 signal_lut_ranges['qDII'] = (0,0.3)
+signal_lut_ranges['Normalized_qDII'] = (-0.5,1)
 signal_lut_ranges['Auxin'] = (0.6,1.)
 signal_lut_ranges['Normalized_Auxin'] = (0.,1.)
 signal_lut_ranges['DR5'] = (0,16000)
@@ -79,19 +115,29 @@ signal_lut_ranges['tdT'] = (0,20000)
 signal_lut_ranges['PIN1'] = (0,40000)
 signal_lut_ranges['PI'] = (0,20000)
 signal_lut_ranges['gaussian_curvature'] = (-0.0005,0.0005)
+signal_lut_ranges['aligned_z'] = (-30,0)
 signal_lut_ranges['nuclei_distance'] = (0,15)
 signal_lut_ranges['surface_distance'] = (0,100)
 signal_lut_ranges['sam_id'] = (0,30)
 signal_lut_ranges['next_relative_surfacic_growth'] = (0.9,1.3)
 
+
 signal_colormaps = {}
-signal_colormaps['CLV3'] = '1Flashy_purple'
-signal_colormaps['DIIV'] = '1Flashy_green'
+# signal_colormaps['CLV3'] = '1Flashy_purple'
+# signal_colormaps['CLV3'] = '1Flashy_yellow'
+signal_colormaps['CLV3'] = 'magenta_hot'
+# signal_colormaps['DIIV'] = '1Flashy_green'
+# signal_colormaps['DIIV'] = '1Flashy_orange'
+signal_colormaps['DIIV'] = 'lemon_hot'
 signal_colormaps['Normalized_DIIV'] = 'viridis_r'
 signal_colormaps['Normalized_Auxin'] = 'viridis'
 signal_colormaps['qDII'] = '1Flashy_green'
-signal_colormaps['Auxin'] = '1Flashy_green_r'
-signal_colormaps['DR5'] = '1Flashy_orange'
+signal_colormaps['Normalized_qDII'] = 'winter'
+# signal_colormaps['Auxin'] = '1Flashy_green_r'
+signal_colormaps['Auxin'] = 'lemon_hot_r'
+# signal_colormaps['DR5'] = '1Flashy_orange'
+# signal_colormaps['DR5'] = '1Flashy_turquoise'
+signal_colormaps['DR5'] = 'cyan_hot'
 signal_colormaps['AHP6'] = '1Flashy_turquoise'
 signal_colormaps['TagBFP'] = 'gray'
 signal_colormaps['tdT'] = 'gray'
@@ -99,10 +145,12 @@ signal_colormaps['PIN1'] = '1Flashy_turquoise'
 signal_colormaps['PI'] = '1Flashy_red'
 # signal_colormaps['gaussian_curvature'] = 'RdBu_r'
 signal_colormaps['gaussian_curvature'] = 'curvature'
+signal_colormaps['aligned_z'] = 'magma'
 signal_colormaps['nuclei_distance'] = 'geo_jet'
 signal_colormaps['surface_distance'] = 'geo_jet'
 signal_colormaps['sam_id'] = 'Blues'
 signal_colormaps['next_relative_surfacic_growth'] = 'jet'
+
 
 
 channel_colormaps = {}

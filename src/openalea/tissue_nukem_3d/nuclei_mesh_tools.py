@@ -329,7 +329,7 @@ def nuclei_layer(nuclei_positions, nuclei_image, microscope_orientation=1, surfa
         surface_topomesh = implicit_surface_topomesh(nuclei_density,grid_size,voxelsize,iso=0.5,center=False)
         surface_topomesh.update_wisp_property('barycenter',0,array_dict(surface_topomesh.wisp_property('barycenter',0).values() - 0.5*voxelsize*size,surface_topomesh.wisp_property('barycenter',0).keys()))
     elif surface_mode == 'image':
-        surface_topomesh = nuclei_image_surface_topomesh(nuclei_image,microscope_orientation=microscope_orientation,density_voxelsize=density_voxelsize,nuclei_sigma=1,maximal_length=6.,remeshing_iterations=20)
+        surface_topomesh = nuclei_image_surface_topomesh(nuclei_image,microscope_orientation=microscope_orientation,density_voxelsize=density_voxelsize,intensity_threshold=1000.,nuclei_sigma=1,maximal_length=6.,remeshing_iterations=20)
 
     top_surface_topomesh = up_facing_surface_topomesh(surface_topomesh,nuclei_positions=nuclei_positions,connected=True)
     top_surface_topomesh = topomesh_triangle_split(top_surface_topomesh)
@@ -436,6 +436,40 @@ def nuclei_topomesh_curvature(topomesh, surface_subdivision=1, return_topomesh=F
         return cell_topomesh
     else:
         return
+
+def nuclei_surface_topomesh_curvature(topomesh, surface_topomesh=None, nuclei_img=None, microscope_orientation=-1, return_topomesh=False):
+    assert (surface_topomesh is not None) or (nuclei_img is not None)
+
+    L1_cells = topomesh.wisp_property('layer',0).keys()[topomesh.wisp_property('layer',0).values()==1]
+    cell_barycenters = array_dict(topomesh.wisp_property('barycenter',0).values(L1_cells),L1_cells)
+
+    if surface_topomesh is None:
+        size = np.array(reference_img.shape)
+        voxelsize = np.array(reference_img.voxelsize)
+
+        surface_topomesh = nuclei_image_surface_topomesh(reference_img, intensity_threshold=1000., microscope_orientation=microscope_orientation, remeshing_iterations=2, erosion_radius=1.)
+        surface_topomesh = up_facing_surface_topomesh(surface_topomesh,normal_method='orientation',connected=True)
+
+    compute_topomesh_property(surface_topomesh,'normal',2,normal_method='orientation')
+    compute_topomesh_vertex_property_from_faces(surface_topomesh,'normal',neighborhood=3,adjacency_sigma=1.2)
+    compute_topomesh_property(surface_topomesh,'mean_curvature',2)
+
+    for property_name in ['mean_curvature','gaussian_curvature']:
+        compute_topomesh_vertex_property_from_faces(surface_topomesh,property_name,neighborhood=3,adjacency_sigma=1.2)
+
+    surface_points = surface_topomesh.wisp_property('barycenter',0).values(list(surface_topomesh.wisps(0)))
+    density, potential = nuclei_density_function(cell_barycenters,cell_radius=5,k=0.33)(surface_points[:,0],surface_points[:,1],surface_points[:,2],return_potential=True)
+
+    for property_name in ['mean_curvature','gaussian_curvature']:
+        property_data = surface_topomesh.wisp_property(property_name,0).values(list(surface_topomesh.wisps(0)))
+        cell_property = array_dict(np.sum(potential*property_data[np.newaxis,:],axis=1)/np.sum(potential,axis=1),keys=cell_barycenters.keys())
+        topomesh.update_wisp_property(property_name,0,array_dict([cell_property[c] if c in cell_barycenters.keys() else 0 for c in topomesh.wisps(0)],list(topomesh.wisps(0))))
+    
+    if return_topomesh:
+        return topomesh, surface_topomesh
+    else:
+        return topomesh
+
 
 def nuclei_curvature(nuclei_positions, cell_layer, size, voxelsize, surface_topomesh=None):
     topomesh = vertex_topomesh(nuclei_positions)
