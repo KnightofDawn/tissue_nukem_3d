@@ -62,22 +62,27 @@ def read_czi_image(czi_file, channel_names=None):
 
     return img
 
-def read_tiff_image(tiff_file, channel_names=None):
+def read_tiff_image(tiff_file, channel_names=None,pattern="ZCXY"):
     from tifffile import TiffFile
 
     tiff_img = TiffFile(tiff_file)
     tiff_channels = tiff_img.asarray()
 
-    n_channels = 1 if tiff_channels.ndim==3 else tiff_channels.shape[1]
+    n_channels = 1 if tiff_channels.ndim==3 else tiff_channels.shape[pattern.find('C')]
 
     if n_channels > 1:
+        tiff_channels = np.transpose(tiff_channels,tuple([pattern.find(c) for c in 'CXYZ']))
         if channel_names is None:
             channel_names = ["CH"+str(i) for i in range(n_channels)]
         img = {}
         for i_channel,channel_name in enumerate(channel_names):
-            img[channel_name] = SpatialImage(np.transpose(tiff_channels[:,i_channel],(1,2,0)))
+            if channel_name is not None:
+                img[channel_name] = SpatialImage(tiff_channels[i_channel])
+        if len(img) == 1:
+            img = img.values()[0]
     else:
-        img = SpatialImage(np.transpose(tiff_channels,(1,2,0)))
+        pattern = pattern.replace('C','')
+        img = SpatialImage(np.transpose(tiff_channels,tuple([pattern.find(c) for c in 'XYZ'])))
 
     return img
 
