@@ -29,12 +29,15 @@ def read_lsm_image(lsm_file, channel_names=None):
     return img
 
 
-def read_czi_image(czi_file, channel_names=None):
+def read_czi_image(czi_file, channel_names=None, pattern=".C.ZXY."):
     from czifile import CziFile
 
     czi_img = CziFile(czi_file)
-
-    czi_channels = np.transpose(czi_img.asarray()[0,:,0,:,:,:,0],(0,2,3,1))
+    czi_channels = czi_img.asarray()
+    # print czi_img.asarray().shape
+    # czi_channels = np.transpose(czi_img.asarray()[0,:,0,:,:,:,0],(0,2,3,1))
+    czi_channels = np.transpose(czi_channels,tuple([pattern.find(c) for c in 'CXYZ']+[i for i in range(len(czi_channels.shape)) if not pattern[i] in 'CXYZ']))[:,:,:,:,0,0,0]
+    print czi_channels.shape
 
     voxelsize = {}
     for s in czi_img.segments():
